@@ -21,7 +21,7 @@ interface ActivityCardProps {
 export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onSelect }) => {
   const statusInfo = getStatusBadge(activity.status);
   const dateFormatted = formatDateLabel(activity.date);
-  const timeFormatted = formatTimeRange(activity.start_time, activity.end_time);
+  const timeFormatted = formatTimeRange(activity.start_time || activity.startTime || '09:00', activity.end_time || activity.endTime || '10:00');
 
   const deptColor = activity.department_color || '#4f46e5';
 
@@ -122,17 +122,17 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, onSelect }
           </button>
 
           {/* Optional registration badge */}
-          {activity.registration_url && (
+          {(activity.registration_url || (activity as any).registration_url) && (
             <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
               <ExternalLink className="w-3 h-3" />
               RSVP Open
             </span>
           )}
 
-          {activity.capacity && (
+          {(activity.capacity || activity.totalSeats) && (
             <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
               <Users className="w-3 h-3 text-slate-400" />
-              Cap: {activity.capacity}
+              Cap: {activity.capacity || activity.totalSeats}
             </span>
           )}
         </div>

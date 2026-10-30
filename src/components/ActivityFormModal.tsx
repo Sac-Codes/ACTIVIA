@@ -59,10 +59,10 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
     if (activityToEdit) {
       setTitle(activityToEdit.title);
       setDescription(activityToEdit.description);
-      setDepartmentId(activityToEdit.department_id);
+      setDepartmentId(activityToEdit.department_id ?? 0);
       setDate(activityToEdit.date);
-      setStartTime(activityToEdit.start_time);
-      setEndTime(activityToEdit.end_time);
+      setStartTime(activityToEdit.start_time || activityToEdit.startTime || '');
+      setEndTime(activityToEdit.end_time || activityToEdit.endTime || '');
       setVenue(activityToEdit.venue);
       setOrganizer(activityToEdit.organizer);
       setStatus(activityToEdit.status);
@@ -193,7 +193,7 @@ export const ActivityFormModal: React.FC<ActivityFormModalProps> = ({
 
       let savedActivity: Activity;
       if (isEditing && activityToEdit) {
-        savedActivity = await updateActivity(activityToEdit.id, payload);
+        savedActivity = await updateActivity(activityToEdit.id, payload) as Activity;
       } else {
         savedActivity = await createActivity(payload);
       }

@@ -110,7 +110,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({ activity, onClose 
 
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/80 px-3 py-1.5 rounded-lg">
               <Clock className="w-4 h-4 text-indigo-600" />
-              <span>{formatTimeRange(activity.start_time, activity.end_time)}</span>
+              <span>{formatTimeRange(activity.start_time || activity.startTime || '09:00', activity.end_time || activity.endTime || '10:00')}</span>
             </div>
           </div>
         </div>

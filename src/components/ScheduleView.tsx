@@ -156,10 +156,10 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                         {/* Time box */}
                         <div className="shrink-0 text-center w-20 py-2 px-1 bg-slate-50 border border-slate-200/80 rounded-xl group-hover:border-indigo-200 transition-colors">
                           <span className="block text-xs font-bold text-slate-900">
-                            {act.start_time}
+                            {act.startTime || act.start_time}
                           </span>
                           <span className="block text-[10px] text-slate-400">
-                            to {act.end_time}
+                            to {act.endTime || act.end_time}
                           </span>
                         </div>
 
@@ -173,7 +173,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                                 color: deptColor,
                               }}
                             >
-                              {act.department_name || act.department_code}
+                              {act.department_name || act.department_code || act.categoryName}
                             </span>
                             <span
                               className={`text-[10px] font-medium px-2 py-0.2 rounded-full border ${statusInfo.bg}`}

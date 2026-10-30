@@ -82,8 +82,10 @@ export function downloadIcsFile(activity: Activity): void {
     return `${cleanDate}T${cleanTime}`;
   };
 
-  const start = formatIcsDate(activity.date, activity.start_time);
-  const end = formatIcsDate(activity.date, activity.end_time);
+  const startTimeVal = activity.startTime || activity.start_time || '09:00';
+  const endTimeVal = activity.endTime || activity.end_time || '10:00';
+  const start = formatIcsDate(activity.date, startTimeVal);
+  const end = formatIcsDate(activity.date, endTimeVal);
   const now = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
   const icsContent = [

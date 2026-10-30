@@ -3,10 +3,59 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-bg-primary: #080D1C;
+    --color-bg-secondary: #10172B;
+    --color-surface-elevated: #161F36;
+    --color-border: #233055;
+    --color-text-main: #F4F6FF;
+    --color-text-secondary: #A3AEC7;
+  }
+
+  .light {
+    --color-bg-primary: #F8FAFC;
+    --color-bg-secondary: #FFFFFF;
+    --color-surface-elevated: #F1F5F9;
+    --color-border: #E2E8F0;
+    --color-text-main: #0F172A;
+    --color-text-secondary: #64748B;
+  }
+
   body {
-    @apply bg-slate-50 text-slate-800 antialiased;
+    @apply antialiased transition-colors duration-200;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-main);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+}
+
+/* Glassmorphism helpers */
+.glass-panel {
+  background: rgba(16, 23, 43, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(108, 131, 255, 0.15);
+}
+
+.light .glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.glass-panel-elevated {
+  background: rgba(22, 31, 54, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(167, 139, 250, 0.2);
+}
+
+.light .glass-panel-elevated {
+  background: rgba(248, 250, 252, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(203, 213, 225, 0.8);
 }
 
 /* Custom subtle scrollbar */
@@ -15,16 +64,45 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
+  background: rgba(8, 13, 28, 0.5);
+}
+.light ::-webkit-scrollbar-track {
   background: #f1f5f9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #233055;
   border-radius: 9999px;
 }
+.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #6C83FF;
 }
 
 .font-heading {
   font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+}
+
+/* 3D Canvas container styling */
+.canvas-3d-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  overflow: hidden;
+}
+
+/* Print styles for student portfolio */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
 }

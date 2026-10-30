@@ -1,106 +1,113 @@
-# CampusFlow — 10-Minute Competition Presentation Script
-## Official Timing, Role Division, and Demonstration Walkthrough
+# ACTIVIA | School Activity Universe — 10-Minute Championship Presentation Script
+## Official Timing, Role Division, and Live Demonstration Walkthrough
 
 ---
 
 ### Team Role Distribution
-- **Speaker 1 (Presenter):** Delivers Problem Statement and Solution Narrative (Min 0:00 – 4:00)
-- **Speaker 2 (Demo Operator):** Operates UI, demonstrates search, filters, modal, and admin operations (Min 2:00 – 7:30)
-- **Speaker 3 (Technical Lead):** Explains architecture, security, database persistence, and DB inspector (Min 4:00 – 8:00)
-- **Speaker 4 (QA & Impact Lead):** Explains test suite, conflict engine, student impact, and roadmap (Min 8:00 – 10:00)
+- **Speaker 1 (Platform Lead / Presenter):** Vision, Problem Statement & Architecture Narrative (Min 0:00 – 2:30)
+- **Speaker 2 (Student Experience Lead / Demo Operator):** 3D Galaxy, Campus Map, Activity Discovery & Team Kanban (Min 2:30 – 5:30)
+- **Speaker 3 (Staff & Governance Lead):** Faculty Approvals, House Standings, Verified Portfolio & Calendar (Min 5:30 – 7:30)
+- **Speaker 4 (Administrator & Systems Lead):** Command Centre, Live Analytics, Safety Toggles, Audit Logs & Roadmap (Min 7:30 – 10:00)
 
-*(If presenting as an individual or smaller team, transition through each section according to the minute markers below).*
-
----
-
-### Phase 1: Problem Statement (Minutes 0:00 – 2:00)
-**Speaker 1 (Presenter):**
-
-> *"Good morning, esteemed judges. Consider how activities are coordinated across our school campus today.*
-> 
-> *A robotics competition is announced on an email thread; an inter-house debate is pinned to a physical bulletin board; sports trials are shared over student group chats; and an orchestral rehearsal is written on a staff whiteboard.*
-> 
-> *This fragmented approach creates three immediate crises:*
-> 1. ***Student Disengagement:*** *Students routinely miss workshops and trials simply because they didn't see the flyer in time.*
-> 2. ***Venue Collisions:*** *Two departments schedule events in the main auditorium at the exact same hour, leading to last-minute cancellations and confusion.*
-> 3. ***Administrative Blindspots:*** *Staff have no centralized overview to balance the academic calendar or review facility utilization.*
-> 
-> *To solve this, we engineered **CampusFlow** — a centralized, real-time school activity coordination platform with persistent database storage, zero external cloud dependencies, and automated schedule conflict detection."*
+*(If presenting solo or in pairs, follow the minute markers and role switches below).*
 
 ---
 
-### Phase 2: Our Solution — Live Platform Demo (Minutes 2:00 – 5:00)
-**Speaker 1 & Speaker 2 (Demo Operator):**
+### Phase 1: The Modern School Dilemma (Minutes 0:00 – 2:30)
+**Speaker 1 (Platform Lead):**
 
-> *(Demo Operator has `http://localhost:5000` open on the screen).*
->
-> *"Let's look at the student-facing experience.*
+> *"Good morning, esteemed judges and educators.*
 > 
-> *Here on the landing page, notice the genuine database-derived statistics: **Upcoming Events**, **Active Departments**, **Venues in Use**, and **Total Published Activities**. None of this is hardcoded — it reflects live SQLite records.*
+> *Think about how co-curricular activities, STEM competitions, sports trials, and student clubs are managed across schools today:*
+> - *A robotics competition is buried inside an unread email blast.*
+> - *Debate trials are scribbled on a hallway noticeboard.*
+> - *Team collaboration happens on chaotic, unmonitored messaging group chats.*
+> - *And paper certificates get lost inside student folders.*
 > 
-> *Below, in the **Activity Discovery feed**, students can instantly locate events.*
-> *(Demo Operator types 'Robotics' into the search bar).*
-> *Notice how instant search returns the Annual Robotics Showcase.*
+> *The consequences are severe:*
+> 1. ***Student Disengagement:*** *Students discover exciting opportunities after registration deadlines have already passed.*
+> 2. ***Administrative Chaos:*** *Teachers spend hours collecting paper permission slips and checking student eligibility manually.*
+> 3. ***Zero Longitudinal Tracking:*** *When students apply for universities or internships, the school lacks a verified, tamper-proof record of their extracurricular leadership.*
 > 
-> *(Demo Operator clears search and selects 'Literature & Debate' from the department dropdown).*
-> *Filtering is instantaneous and updates the card collection without refreshing the browser.*
-> 
-> *(Demo Operator clicks on an activity card).*
-> *The **Activity Details modal** displays complete information: date, start/end time duration, venue, lead organizer, capacity limits, and special participation instructions.*
-> *Students can click **'Add to Calendar'** to download a standardized `.ics` file that imports directly into Google Calendar or Apple Calendar, or click **'Share Event'** to copy a direct link.*
-> 
-> *(Demo Operator navigates to the 'Schedule' tab).*
-> *In the **Campus Activity Schedule**, events are grouped into a clean, chronological day-by-day agenda. Students can see today's events, tomorrow's events, and the upcoming week at a glance.*
-> 
-> *(Demo Operator navigates to the 'Departments' tab).*
-> *The **Departments Directory** displays all 6 academic faculties with their active event counts and color themes."*
+> *To transform this experience, we engineered **ACTIVIA | School Activity Universe** — an immersive, multi-role web ecosystem combining interactive 3D spatial discovery, team competition workspaces, faculty approval workflows, and an administrative command centre."*
 
 ---
 
-### Phase 3: Technical Deep-Dive & Persistence Demo (Minutes 5:00 – 8:00)
-**Speaker 3 (Technical Lead):**
+### Phase 2: Live Student Experience & 3D Spatial Discovery (Minutes 2:30 – 5:30)
+**Speaker 2 (Student Experience Lead / Demo Operator):**
 
-> *"Now let's examine the engineering behind CampusFlow.*
+> *(Demo Operator opens `http://localhost:5173/` in student persona — Maya Chen).*
 > 
-> *We selected a self-contained, enterprise-grade architecture:*
-> - *A **React 18** and **TypeScript** frontend built with **Vite 6** and **Tailwind CSS** for responsive, accessible interaction.*
-> - *A **Node.js 25 REST API** with structured schema validation on every request.*
-> - *A local **SQLite database** running in WAL (Write-Ahead Logging) mode with foreign key constraints enforced.*
+> *"Let's step into the shoes of Maya Chen, an 11th-grade student leader.*
 > 
-> *(Demo Operator clicks 'Staff Admin Login', clicks 'Auto-Fill', and signs in).*
+> *Right on the **Student Home Dashboard**, Maya receives a personalized briefing: her current **Participation Streak (8 Days)**, **340 Extracurricular Points**, an **Action Centre** with 1-click shortcuts, and verified **Official Notices**.*
 > 
-> *Notice our authentication system: passwords are never stored in plaintext. We utilize Node's cryptographic `scrypt` algorithm with unique 16-byte random salts and timing-safe comparisons to protect credentials.*
+> *(Demo Operator navigates to the '3D Activity Galaxy' tab).*
 > 
-> *(Demo Operator clicks 'Add New Activity').*
-> *Here is our primary innovation: **Real-Time Schedule Conflict Detection**.*
-> *If an administrator attempts to book 'Fieldhouse Court 1' on a date and time already reserved by another event, CampusFlow's conflict engine detects the overlap and displays a live warning banner with the conflicting event's details before the record is saved.*
-> *Furthermore, our API strictly enforces that `end_time` must be after `start_time`, rejecting invalid submissions.*
+> *Here is our signature innovation: the **3D Activity Galaxy Hub**.*
+> *Rendered in real-time using Three.js, activities are organized into 8 planetary sectors — STEM & Robotics, Science & Innovation, Athletics, Performing Arts, Debate, Leadership, Community Service, and Clubs.*
+> *Students can rotate the universe, observe orbit rings, and click on any planetary sector to immediately discover associated activities.*
 > 
-> *(Demo Operator navigates to the 'Database Inspector' tab).*
-> *As requested in competition criteria, we have built a **Live Read-Only Database Inspector**.*
-> *Judges can inspect raw SQLite tables (`activities`, `departments`, `administrators`, `audit_logs`), view table column definitions, and verify that administrator password hashes are safely masked to `[PROTECTED_SCRYPT_HASH]`.*
+> *(Demo Operator navigates to the '3D Campus Map' tab).*
 > 
-> *(Demo Operator navigates to the 'Audit Log Trail' tab).*
-> *Every administrative action — logins, creations, updates, and deletions — is permanently recorded in the `audit_logs` table with an actor timestamp."*
+> *Next, our **3D Miniature Campus Map** translates school geography into an interactive digital twin. Students can click on the STEM Center, Main Auditorium, Athletics Pavilion, or Library to see resident clubs, capacity metrics, and scheduled events in that building.*
+> 
+> *(Demo Operator navigates to 'Activities' tab and opens 'Annual Robotics Championship').*
+> 
+> *In the **Activity Discovery Hub**, real-time seat tracking displays remaining capacity, prerequisites, and house eligibility.*
+> *Opening an event modal reveals full coordinator contacts, rules, and an instant **Registration & Waitlist Engine** with automatic calendar sync (`.ics` download).*
+> 
+> *(Demo Operator navigates to 'Competitions & Teams' tab).*
+> 
+> *For group competitions, students don't need external messaging apps. Inside our **Competitions & Team Workspace**, students can join teams using unique 6-character invite codes (like `ROBO24`), review the **12-Stage Milestone Roadmap**, and manage team tasks on our interactive **Kanban Board** (To-Do, In Progress, Under Review, Completed)."*
 
 ---
 
-### Phase 4: Impact, Verification & Future Vision (Minutes 8:00 – 10:00)
-**Speaker 4 (QA & Impact Lead):**
+### Phase 3: Clubs, House Standings, Verified Portfolio & Calendar (Minutes 5:30 – 7:30)
+**Speaker 3 (Staff & Governance Lead):**
 
-> *"To guarantee competition reliability, we did not rely on manual testing.*
+> *(Demo Operator navigates to 'Clubs & Houses' tab).*
 > 
-> *We wrote an automated test suite containing **12 comprehensive integration tests** covering health checks, draft privacy, search, department filtering, authentication rejection, time validation, conflict detection, full CRUD lifecycle, and database persistence.*
-> *All 12 tests pass with 100% success.*
+> *"Extracurricular life thrives on healthy school spirit. In the **Clubs & House Standings** tab, students track the real-time **House Championship Cup** leaderboard — Phoenix, Solaris, Titan, and Aquila — with dynamic points bars and recent house achievements.*
+> *Students can browse active clubs, inspect executive boards, and toggle membership with instant state persistence.*
 > 
-> *The real-world impact of CampusFlow is tangible:*
-> 1. ***Eliminates Double-Bookings:*** *The conflict engine prevents hall and equipment scheduling collisions.*
-> 2. ***Increases Student Participation:*** *Centralized calendar feeds and `.ics` export ensure students never miss an event.*
-> 3. ***Auditable Transparency:*** *Full audit logging ensures staff accountability.*
+> *(Demo Operator navigates to 'Portfolio' tab).*
 > 
-> *For our future roadmap, the modular architecture is prepared for:*
-> - *Student SSO integration (Google Workspace / Microsoft Education)*
-> - *Automated QR-code attendance check-in at event entrances*
-> - *Automated email reminders sent 24 hours prior to scheduled events.*
+> *When it comes time for university applications, ACTIVIA provides a **Verified Achievement Portfolio**.*
+> *Achievements are rendered in an interactive **3D Star Constellation**, where each star represents a verified milestone. Every achievement features a cryptographic verification ID, issuing teacher signature, and 1-click PDF certificate export.*
 > 
-> *CampusFlow is fully runnable, persistent, tested, and ready for competition inspection. We invite the judges to ask questions or inspect any database record live on screen. Thank you."*
+> *(Demo Operator navigates to 'Calendar' tab).*
+> 
+> *Our **Academic & Event Calendar** combines a monthly grid with an agenda feed, category filters, and clash-prevention indicators.*
+> 
+> *(Demo Operator switches persona in top-right dropdown to 'Dr. Robert Vance' - Teacher).*
+> 
+> *Now watch the transition to the **Faculty Workspace**.*
+> *Teachers get a dedicated cockpit: a **Pending Approvals Queue** where they can approve or decline student registrations with one click, an **Activity Creation Wizard** with capacity and prerequisite controls, and a team mentoring monitor."*
+
+---
+
+### Phase 4: Administrator Directorate & Command Centre (Minutes 7:30 – 10:00)
+**Speaker 4 (Administrator & Systems Lead):**
+
+> *(Demo Operator switches persona to 'Principal Eleanor Sterling' - Admin).*
+> 
+> *"At the administrative helm, school leaders have complete visibility in the **Admin Command Centre**.*
+> 
+> *1. **Real-Time School Analytics:** Live telemetry tracking Total Student Registrations (248), Active Competitions (18), Venue Utilization (76%), and Total Verified Hours (1,420 hrs).*
+> *2. **Student Voice Ticketing:** A transparent feedback center where administrators review student proposals, complaints, and facility requests with status progression.*
+> *3. **Emergency Broadcast Engine:** School leaders can post campus-wide alert banners with high-priority visual flags across all student dashboards instantly.*
+> *4. **Governance & Audit Trail:** Every single administrative action — approvals, setting toggles, cancellations — is logged with an immutable actor timestamp and IP origin.*
+> *5. **Data Export:** 1-click CSV generation for academic board reviews and school accreditation.*
+> 
+> *(Demo Operator presses `Ctrl+K` to reveal the Global Command Palette).*
+> 
+> *With our **Universal Command Palette (Ctrl+K)**, students, teachers, and admins can jump to any activity, club, or page in milliseconds.*
+> 
+> ### Summary of Impact:
+> - **100% Digital Workflow:** Zero paper forms, zero lost certificates.
+> - **Zero Venue Collisions:** Verified facility scheduling and capacity guards.
+> - **Unified Multi-Role Architecture:** Responsive across mobile, tablet, and desktop.
+> - **Production Clean:** Zero TypeScript errors, clean production bundle, and zero external cloud reliance.
+> 
+> *ACTIVIA is not just a dashboard — it is the digital operating system for the next generation of school activities. We welcome any questions from the judging panel."*
