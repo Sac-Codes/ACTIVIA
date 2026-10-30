@@ -15,6 +15,9 @@ import { AchievementPortfolio } from './components/portfolio/AchievementPortfoli
 import { TeacherDashboard } from './components/staff/TeacherDashboard';
 import { AdminCommandCentre } from './components/admin/AdminCommandCentre';
 import { CommandSearchModal } from './components/common/CommandSearchModal';
+import { ApplicationsView } from './components/applications/ApplicationsView';
+import { ResourcesView } from './components/resources/ResourcesView';
+import { SettingsView } from './components/settings/SettingsView';
 
 import { activiaStore } from './api';
 import {
@@ -60,7 +63,7 @@ export const App: React.FC = () => {
 
   // 2. Navigation & UI State
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [searchModalOpen, setSearchModalOpen] = useState<boolean>(false);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
@@ -228,7 +231,7 @@ export const App: React.FC = () => {
   const unreadAnnouncementsCount = announcements.filter(a => !a.isRead).length;
 
   return (
-    <div className="min-h-screen bg-activia-dark text-activia-text flex flex-col font-sans transition-colors duration-200">
+    <div className="min-h-screen bg-[#F7F9FC] text-[#172033] flex flex-col font-sans transition-colors duration-200">
       {/* 1. Global Navbar */}
       <Navbar
         currentPersona={persona}
@@ -255,36 +258,63 @@ export const App: React.FC = () => {
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           pendingApprovalsCount={pendingApprovalsCount}
           unreadAnnouncementsCount={unreadAnnouncementsCount}
+          schoolName={settings.schoolName}
         />
 
         {/* Dynamic Main Workspace Container */}
         <main className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 max-w-7xl mx-auto w-full">
-          {/* TAB: Student Home Dashboard */}
+          {/* TAB: Dashboard View (Role Adaptive) */}
           {activeTab === 'dashboard' && (
-            <StudentDashboard
-              persona={persona}
-              activities={activities}
-              registrations={registrations}
-              tasks={tasks}
-              achievements={achievements}
-              announcements={announcements}
-              feedbackTickets={feedbackTickets}
-              onNavigate={setActiveTab}
-              onSelectActivity={setSelectedActivity}
-            />
+            persona.role === 'teacher' ? (
+              <TeacherDashboard
+                persona={persona}
+                activities={activities}
+                registrations={registrations}
+                teams={teams}
+                tasks={tasks}
+                onUpdateRegistrationStatus={handleUpdateRegistrationStatus}
+                onCreateActivity={handleCreateActivity}
+                onNavigate={setActiveTab}
+              />
+            ) : persona.role === 'admin' ? (
+              <AdminCommandCentre
+                analytics={analytics}
+                settings={settings}
+                auditLogs={auditLogs}
+                venues={venues}
+                feedbackTickets={feedbackTickets}
+                persona={persona}
+                onUpdateSettings={handleUpdateSettings}
+                onPostAnnouncement={handlePostAnnouncement}
+                onUpdateFeedbackStatus={handleUpdateFeedbackStatus}
+                onExportCsv={handleExportCsv}
+              />
+            ) : (
+              <StudentDashboard
+                persona={persona}
+                activities={activities}
+                registrations={registrations}
+                tasks={tasks}
+                achievements={achievements}
+                announcements={announcements}
+                feedbackTickets={feedbackTickets}
+                onNavigate={setActiveTab}
+                onSelectActivity={setSelectedActivity}
+              />
+            )
           )}
 
           {/* TAB: 3D Activity Galaxy */}
           {activeTab === 'galaxy' && (
             <div className="space-y-4">
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-activia-blue">
+              <div className="bg-white rounded-xl border border-app-border p-5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-app-brand">
                   Signature 3D Environment
                 </span>
-                <h2 className="text-2xl font-bold font-display text-white">
+                <h2 className="text-xl font-bold font-display text-app-text mt-0.5">
                   Activity Galaxy Hub
                 </h2>
-                <p className="text-xs text-activia-muted mt-0.5">
+                <p className="text-xs text-app-muted mt-1">
                   Explore 8 planetary sectors representing STEM, Science, Sports, Arts, Debate, Leadership, Community Service, and Clubs.
                 </p>
               </div>
@@ -300,14 +330,14 @@ export const App: React.FC = () => {
           {/* TAB: 3D Miniature Campus Map */}
           {activeTab === 'campus' && (
             <div className="space-y-4">
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-activia-cyan">
+              <div className="bg-white rounded-xl border border-app-border p-5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-app-accent">
                   Interactive Campus Geography
                 </span>
-                <h2 className="text-2xl font-bold font-display text-white">
+                <h2 className="text-xl font-bold font-display text-app-text mt-0.5">
                   3D Miniature School Campus
                 </h2>
-                <p className="text-xs text-activia-muted mt-0.5">
+                <p className="text-xs text-app-muted mt-1">
                   Click on campus buildings to inspect resident clubs, scheduled events, and facility capacity.
                 </p>
               </div>
@@ -376,12 +406,15 @@ export const App: React.FC = () => {
             />
           )}
 
-          {/* TAB: Student Voice & Feedback */}
-          {activeTab === 'feedback' && (
-            <StudentVoiceFeedback
-              tickets={feedbackTickets}
+          {/* TAB: My Applications & Review Applications */}
+          {activeTab === 'applications' && (
+            <ApplicationsView
+              registrations={registrations}
               persona={persona}
-              onSubmitTicket={handleSubmitFeedback}
+              activities={activities}
+              onUpdateStatus={handleUpdateRegistrationStatus}
+              onSelectActivity={setSelectedActivity}
+              onNavigate={setActiveTab}
             />
           )}
 
@@ -390,6 +423,29 @@ export const App: React.FC = () => {
             <AchievementPortfolio
               achievements={achievements}
               persona={persona}
+            />
+          )}
+
+          {/* TAB: Institutional Resources & Handbooks */}
+          {activeTab === 'resources' && (
+            <ResourcesView />
+          )}
+
+          {/* TAB: Help & Support / Student Voice */}
+          {(activeTab === 'support' || activeTab === 'feedback') && (
+            <StudentVoiceFeedback
+              tickets={feedbackTickets}
+              persona={persona}
+              onSubmitTicket={handleSubmitFeedback}
+            />
+          )}
+
+          {/* TAB: Settings */}
+          {activeTab === 'settings' && (
+            <SettingsView
+              persona={persona}
+              settings={settings}
+              onUpdateSettings={handleUpdateSettings}
             />
           )}
 

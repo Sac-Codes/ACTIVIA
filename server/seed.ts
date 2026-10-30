@@ -6,11 +6,24 @@ export function seedDatabase(reset: boolean = false) {
 
   if (reset) {
     db.exec(`
+      DELETE FROM registrations;
+      DELETE FROM club_memberships;
+      DELETE FROM clubs;
+      DELETE FROM announcements;
+      DELETE FROM achievements;
+      DELETE FROM tickets;
+      DELETE FROM resources;
+      DELETE FROM school_settings;
+      DELETE FROM users;
       DELETE FROM audit_logs;
       DELETE FROM activities;
       DELETE FROM departments;
       DELETE FROM administrators;
-      DELETE FROM sqlite_sequence WHERE name IN ('audit_logs', 'activities', 'departments', 'administrators');
+      DELETE FROM sqlite_sequence WHERE name IN (
+        'audit_logs', 'activities', 'departments', 'administrators',
+        'users', 'registrations', 'clubs', 'club_memberships',
+        'announcements', 'achievements', 'tickets', 'resources', 'school_settings'
+      );
     `);
   }
 
@@ -275,8 +288,113 @@ export function seedDatabase(reset: boolean = false) {
       'SEED',
       'system',
       null,
-      'Initialized standard competition demo dataset with 11 realistic campus activities across 6 departments.'
+      'Initialized standard dataset with campus activities across 6 departments.'
     );
+  }
+
+  // 1. Seed Users (Student, Teacher, Admin)
+  const existingUsers = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
+  if (existingUsers.count === 0) {
+    const insertUser = db.prepare(`
+      INSERT INTO users (username, password_hash, full_name, email, role, grade, house)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const defaultPasswordHash = hashPassword('CampusFlow2026!');
+    insertUser.run('student', defaultPasswordHash, 'Alex Rivera', 'alex.rivera@school.edu', 'student', 'Grade 10-A', 'Phoenix');
+    insertUser.run('teacher', defaultPasswordHash, 'Dr. Robert Vance', 'robert.vance@school.edu', 'teacher', 'Faculty Mentor', 'Titan');
+    insertUser.run('admin', defaultPasswordHash, 'Eleanor Sterling', 'eleanor.sterling@school.edu', 'admin', 'Principal', 'Solaris');
+  }
+
+  const studentUser = db.prepare("SELECT id FROM users WHERE username = 'student'").get() as { id: number } | undefined;
+
+  // 2. Seed Clubs
+  const existingClubs = db.prepare('SELECT COUNT(*) as count FROM clubs').get() as { count: number };
+  if (existingClubs.count === 0) {
+    const insertClub = db.prepare(`
+      INSERT INTO clubs (name, code, description, category, meeting_day, meeting_time, room, advisor_name, max_members)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    insertClub.run('Robotics & Engineering Club', 'ROBO', 'Hands-on hardware prototyping, autonomous programming, and competition build sessions.', 'STEM', 'Tuesdays', '15:30 - 17:00', 'Lab 4B', 'Dr. Robert Vance', 40);
+    insertClub.run('Model UN & Parliamentary Debate', 'DEBATE', 'Training in public speaking, international diplomacy, resolution drafting, and critical rhetoric.', 'Humanities', 'Thursdays', '16:00 - 17:30', 'Lecture Hall 1', 'Elena Rostova', 50);
+    insertClub.run('Studio Arts & Digital Media Guild', 'ARTS', 'Traditional oil painting, sculpture, 3D digital illustration, and campus gallery curation.', 'Arts', 'Wednesdays', '15:00 - 16:30', 'Studio C', 'Sarah Jenkins', 35);
+    insertClub.run('Environmental Stewardship Council', 'ECO', 'Campus sustainability audits, native tree planting, and local conservation initiatives.', 'Community', 'Mondays', '15:30 - 16:30', 'Eco-Garden', 'Marcus Chen', 45);
+    insertClub.run('Competitive Chess & Strategic Gaming', 'CHESS', 'Tactical opening theory, blitz tournaments, and regional inter-school match preparation.', 'Recreation', 'Fridays', '15:30 - 17:00', 'Library Annex', 'Darren Lewis', 30);
+  }
+
+  // 3. Seed Announcements
+  const existingAnnouncements = db.prepare('SELECT COUNT(*) as count FROM announcements').get() as { count: number };
+  if (existingAnnouncements.count === 0) {
+    const insertAnnouncement = db.prepare(`
+      INSERT INTO announcements (title, content, priority, target_role, author_name)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+
+    insertAnnouncement.run(
+      'Annual Co-Curricular Registration Window Open',
+      'All students must complete their club enrollments and activity selections by Friday 5:00 PM. Contact your grade advisor for assistance.',
+      'urgent',
+      'all',
+      'Dean of Student Affairs'
+    );
+    insertAnnouncement.run(
+      'Auditorium Sound System Upgrades Completed',
+      'The Performing Arts Wing and Main Hall audio systems have been calibrated. Bookings for rehearsals are now accepted.',
+      'normal',
+      'all',
+      'Campus Facilities Management'
+    );
+    insertAnnouncement.run(
+      'Inter-House Points Standings Update',
+      'Congratulations to Phoenix House for leading this week after their decisive victory in the varsity basketball qualifiers!',
+      'normal',
+      'all',
+      'Sports & House Directorate'
+    );
+  }
+
+  // 4. Seed Resources
+  const existingResources = db.prepare('SELECT COUNT(*) as count FROM resources').get() as { count: number };
+  if (existingResources.count === 0) {
+    const insertResource = db.prepare(`
+      INSERT INTO resources (title, category, description, file_url, file_type)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+
+    insertResource.run('Co-Curricular Policy & Student Handbook 2026-27', 'Guidelines', 'Official school policy on participation quotas, eligibility requirements, and conduct standards.', '#', 'PDF');
+    insertResource.run('Medical Clearance & Safety Release Form', 'Forms', 'Mandatory medical waiver for athletic competitions, overnight travel, and high-intensity sports.', '#', 'PDF');
+    insertResource.run('Inter-House Cup Rules & Scoring Matrix', 'Handbooks', 'Detailed breakdown of championship points awarded for academics, athletics, and cultural showcases.', '#', 'PDF');
+    insertResource.run('Student Club Constitution Template', 'Templates', 'Standard operating bylaws template for proposing and chartering new student societies.', '#', 'DOCX');
+  }
+
+  // 5. Seed School Settings
+  const existingSettings = db.prepare('SELECT COUNT(*) as count FROM school_settings').get() as { count: number };
+  if (existingSettings.count === 0) {
+    const insertSetting = db.prepare(`
+      INSERT INTO school_settings (key, value)
+      VALUES (?, ?)
+    `);
+
+    insertSetting.run('school_name', 'Oakridge International Academy');
+    insertSetting.run('academic_year', '2026 - 2027');
+    insertSetting.run('term', 'Spring Semester');
+    insertSetting.run('registration_open', 'true');
+    insertSetting.run('primary_color', '#4F46E5');
+  }
+
+  // 6. Seed sample registration for student if student exists
+  if (studentUser) {
+    const existingReg = db.prepare('SELECT COUNT(*) as count FROM registrations WHERE user_id = ?').get(studentUser.id) as { count: number };
+    if (existingReg.count === 0) {
+      const firstAct = db.prepare("SELECT id FROM activities WHERE status = 'published' LIMIT 1").get() as { id: number } | undefined;
+      if (firstAct) {
+        db.prepare(`
+          INSERT INTO registrations (activity_id, user_id, status, notes, team_name)
+          VALUES (?, ?, 'approved', 'Confirmed registration with signed parental consent.', 'RoboRaiders')
+        `).run(firstAct.id, studentUser.id);
+      }
+    }
   }
 
   return { success: true, message: 'Database initialized and seeded successfully.' };

@@ -2,15 +2,13 @@ import React, { useState } from 'react';
 import {
   Bell,
   MessageSquare,
-  Sparkles,
   CheckCircle2,
   AlertCircle,
-  Clock,
   Filter,
   Send,
   User,
   ShieldCheck,
-  ChevronDown
+  Check
 } from 'lucide-react';
 import { Announcement, ActivityQuestion } from '../../types';
 
@@ -28,22 +26,21 @@ export const AnnouncementsBoard: React.FC<AnnouncementsBoardProps> = ({
   const [activeTab, setActiveTab] = useState<'notices' | 'qa'>('notices');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
-  // Sample Q&A items
   const [questions, setQuestions] = useState<ActivityQuestion[]>([
     {
       id: 'q-01',
       activityId: 'act-001',
-      question: 'Will there be testing time slots allocated before the official Autonomous Rover trials?',
+      question: 'Will testing time slots be allocated before the official Autonomous Rover trials?',
       studentName: 'Alex Rivera',
       askedAt: '2026-10-25',
-      answer: 'Yes! The arena will be open for dry obstacle runs on Wednesday Nov 12 between 14:00 and 17:30.',
+      answer: 'Yes! The arena will be open for dry obstacle runs on Wednesday between 14:00 and 17:30.',
       answeredBy: 'Dr. Robert Vance (Head of STEM)',
       answeredAt: '2026-10-26'
     },
     {
       id: 'q-02',
       activityId: 'act-003',
-      question: 'Are digital tablets permitted during formal UN debate caucus sessions?',
+      question: 'Are digital tablets permitted during formal Model UN debate caucus sessions?',
       studentName: 'Maya Chen',
       askedAt: '2026-10-24',
       answer: 'Tablets and laptops are allowed during unmoderated caucus for drafting working papers, but must not be used during formal podium speeches.',
@@ -80,36 +77,36 @@ export const AnnouncementsBoard: React.FC<AnnouncementsBoardProps> = ({
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 pb-12">
+    <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-activia-rose flex items-center gap-1.5">
-            <Bell className="w-3.5 h-3.5" />
-            Official Communications Centre
-          </span>
-          <h2 className="text-2xl font-bold font-display text-white mt-0.5">
-            Announcements & Activity Q&A
+          <h2 className="text-xl sm:text-2xl font-bold font-display text-app-text">
+            School Announcements & Q&A
           </h2>
-          <p className="text-xs text-activia-muted mt-1">
-            Authoritative faculty circulars, schedule adjustments, and moderated activity questions.
+          <p className="text-xs sm:text-sm text-app-muted mt-1">
+            Official circulars from campus administration, faculty mentors, and moderated activity discussions.
           </p>
         </div>
 
-        {/* View Switcher */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-activia-surface border border-activia-border self-start sm:self-auto">
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-1.5 p-1 rounded-lg bg-app-secondary border border-app-border self-start sm:self-auto">
           <button
             onClick={() => setActiveTab('notices')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'notices' ? 'bg-activia-blue text-white shadow' : 'text-activia-muted hover:text-white'
+            className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+              activeTab === 'notices'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-app-muted hover:text-app-text'
             }`}
           >
-            Notices ({announcements.length})
+            Official Circulars ({announcements.length})
           </button>
           <button
             onClick={() => setActiveTab('qa')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'qa' ? 'bg-activia-blue text-white shadow' : 'text-activia-muted hover:text-white'
+            className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+              activeTab === 'qa'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-app-muted hover:text-app-text'
             }`}
           >
             Activity Q&A ({questions.length})
@@ -119,163 +116,152 @@ export const AnnouncementsBoard: React.FC<AnnouncementsBoardProps> = ({
 
       {/* NOTICES TAB */}
       {activeTab === 'notices' && (
-        <div className="space-y-4">
-          {/* Priority Filter */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-activia-muted">Filter by Priority:</span>
-            {['all', 'urgent', 'high', 'normal'].map(p => (
-              <button
-                key={p}
-                onClick={() => setPriorityFilter(p)}
-                className={`px-3 py-1 rounded-xl text-xs font-semibold capitalize transition-all ${
-                  priorityFilter === p
-                    ? 'bg-activia-elevated text-white border border-activia-blue'
-                    : 'bg-activia-surface text-activia-muted hover:text-white border border-transparent'
-                }`}
+        <div className="space-y-5">
+          {/* Priority Filter Bar */}
+          <div className="bg-white rounded-xl border border-app-border p-4 shadow-xs flex items-center justify-between gap-3">
+            <span className="text-xs font-medium text-app-muted">
+              Displaying {filteredAnnouncements.length} school announcements
+            </span>
+            <div className="flex items-center gap-2">
+              <Filter className="w-3.5 h-3.5 text-app-muted" />
+              <select
+                value={priorityFilter}
+                onChange={e => setPriorityFilter(e.target.value)}
+                className="px-3 py-1.5 text-xs rounded-lg border border-app-border bg-white text-app-text"
               >
-                {p}
-              </button>
-            ))}
+                <option value="all">All Priorities</option>
+                <option value="urgent">Urgent Circulars</option>
+                <option value="normal">Standard Notices</option>
+              </select>
+            </div>
           </div>
 
-          <div className="space-y-4">
-            {filteredAnnouncements.map(ann => (
-              <div
-                key={ann.id}
-                className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl space-y-4"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={ann.publisherAvatar}
-                      alt={ann.publisher}
-                      className="w-10 h-10 rounded-xl object-cover ring-1 ring-white/10"
-                    />
-                    <div>
-                      <h4 className="text-xs font-bold text-white">{ann.publisher}</h4>
-                      <p className="text-[10px] text-activia-muted">
-                        {ann.publisherRole} • {new Date(ann.publishedAt).toLocaleDateString()}
-                      </p>
+          {filteredAnnouncements.length === 0 ? (
+            <div className="p-16 text-center rounded-xl bg-white border border-app-border shadow-xs">
+              <Bell className="w-10 h-10 text-app-muted mx-auto mb-3" />
+              <h3 className="text-base font-semibold text-app-text">No announcements posted</h3>
+              <p className="text-xs text-app-muted mt-1">There are no active notices matching your filter.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredAnnouncements.map(notice => (
+                <div
+                  key={notice.id}
+                  className={`bg-white rounded-xl border p-6 shadow-xs space-y-3 transition-all ${
+                    notice.priority === 'urgent'
+                      ? 'border-red-200 bg-red-50/20'
+                      : 'border-app-border'
+                  }`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      {notice.priority === 'urgent' ? (
+                        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-red-100 text-red-800 border border-red-200">
+                          Urgent Announcement
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          General Circular
+                        </span>
+                      )}
+                      <span className="text-xs text-app-subtle">
+                        Audience: {notice.targetAudience || 'All School'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-app-subtle">
+                        {notice.publishedAt ? new Date(notice.publishedAt).toLocaleDateString() : 'Recent'}
+                      </span>
+                      {notice.isRead ? (
+                        <span className="text-[11px] text-emerald-700 font-medium flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" /> Read
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => onMarkAsRead(notice.id)}
+                          className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold hover:underline"
+                        >
+                          Mark as read
+                        </button>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        ann.priority === 'urgent'
-                          ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                          : ann.priority === 'high'
-                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                          : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                      }`}
-                    >
-                      {ann.priority} Priority
-                    </span>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 text-activia-muted">
-                      Audience: {ann.targetAudience}
-                    </span>
+                  <div>
+                    <h3 className="text-base font-bold text-app-text">{notice.title}</h3>
+                    <p className="text-xs sm:text-sm text-app-muted leading-relaxed mt-2 whitespace-pre-line">
+                      {notice.body}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-app-border flex items-center justify-between text-xs text-app-subtle">
+                    <span>Authorized by: <strong className="text-app-text">{notice.publisher}</strong> ({notice.publisherRole})</span>
                   </div>
                 </div>
-
-                <div>
-                  <h3 className="text-base font-bold font-display text-white">{ann.title}</h3>
-                  <p className="text-xs text-activia-text mt-2 leading-relaxed whitespace-pre-line">
-                    {ann.body}
-                  </p>
-                </div>
-
-                <div className="pt-2 flex items-center justify-between text-xs text-activia-muted">
-                  <span>Acknowledged by {ann.readByCount} students</span>
-                  {!ann.isRead ? (
-                    <button
-                      onClick={() => onMarkAsRead(ann.id)}
-                      className="px-3 py-1.5 rounded-xl bg-activia-blue/20 hover:bg-activia-blue/30 text-activia-blue border border-activia-blue/40 font-semibold transition-all flex items-center gap-1.5"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Mark Acknowledged
-                    </button>
-                  ) : (
-                    <span className="text-activia-mint flex items-center gap-1 font-semibold text-[11px]">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Acknowledged
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* ACTIVITY Q&A TAB */}
+      {/* Q&A TAB */}
       {activeTab === 'qa' && (
         <div className="space-y-6">
-          {/* Ask question box */}
-          <div className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl">
-            <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-activia-cyan" />
-              Ask Coordinating Faculty a Question
+          {/* Ask Form */}
+          <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs space-y-3">
+            <h3 className="text-sm font-bold text-app-text flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-indigo-600" />
+              Ask a Question About an Activity
             </h3>
-            <p className="text-xs text-activia-muted mb-4">
-              Questions are answered by activity coordinators and published for all eligible participants to prevent repetitive queries.
-            </p>
 
             {questionSubmitted && (
-              <div className="mb-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
-                Your question has been dispatched to faculty mentors. You will be notified once answered.
+              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                Your question has been submitted for faculty review.
               </div>
             )}
 
             <form onSubmit={handleAskQuestion} className="flex gap-2">
               <input
                 type="text"
-                placeholder="Ask about venue access, equipment rules, kit allocation, team changes..."
+                placeholder="Ask about rules, rehearsal venues, equipment, or timelines..."
                 value={newQuestion}
                 onChange={e => setNewQuestion(e.target.value)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white placeholder:text-activia-muted focus:outline-none focus:border-activia-blue"
+                className="flex-1 px-3 py-2 text-xs rounded-lg border border-app-border bg-app-secondary focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
               />
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-activia-blue hover:bg-activia-blue/90 text-white text-xs font-bold shadow-lg transition-all flex items-center gap-1.5"
+                disabled={!newQuestion.trim()}
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold text-xs shadow-xs transition-colors flex items-center gap-1.5"
               >
                 <Send className="w-3.5 h-3.5" />
-                Post Question
+                <span>Post Question</span>
               </button>
             </form>
           </div>
 
-          {/* Q&A Thread List */}
+          {/* Q&A List */}
           <div className="space-y-4">
             {questions.map(q => (
-              <div key={q.id} className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white flex items-center gap-2">
-                    <User className="w-3.5 h-3.5 text-activia-blue" />
-                    {q.studentName} asked:
-                  </span>
-                  <span className="text-[10px] text-activia-muted">{q.askedAt}</span>
+              <div key={q.id} className="bg-white rounded-xl border border-app-border p-5 shadow-xs space-y-3">
+                <div className="flex items-center justify-between text-xs text-app-subtle">
+                  <span>Asked by <strong className="text-app-text">{q.studentName}</strong></span>
+                  <span>{q.askedAt}</span>
                 </div>
-
-                <p className="text-xs text-white font-medium pl-5 border-l-2 border-activia-blue">
-                  &ldquo;{q.question}&rdquo;
-                </p>
+                <h4 className="text-sm font-bold text-app-text">{q.question}</h4>
 
                 {q.answer ? (
-                  <div className="mt-3 p-4 rounded-2xl bg-activia-elevated/80 border border-white/5 space-y-1">
-                    <div className="flex items-center justify-between text-[11px] text-activia-cyan font-bold">
-                      <span className="flex items-center gap-1">
-                        <ShieldCheck className="w-3.5 h-3.5 text-activia-mint" />
-                        {q.answeredBy}
-                      </span>
-                      <span className="text-activia-muted">{q.answeredAt}</span>
-                    </div>
-                    <p className="text-xs text-activia-text leading-relaxed pt-1">
-                      {q.answer}
+                  <div className="p-3.5 rounded-lg bg-indigo-50/60 border border-indigo-100 space-y-1 text-xs">
+                    <p className="font-semibold text-indigo-950 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                      Answer from {q.answeredBy}:
                     </p>
+                    <p className="text-indigo-900 leading-relaxed pl-5.5">{q.answer}</p>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-amber-400 italic pl-5">
-                    Under review by coordinating teacher...
+                  <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded border border-amber-200">
+                    Awaiting response from faculty coordinator...
                   </p>
                 )}
               </div>

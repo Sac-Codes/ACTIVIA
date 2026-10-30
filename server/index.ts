@@ -12,6 +12,12 @@ import authRoutes from './routes/auth.js';
 import departmentRoutes from './routes/departments.js';
 import activityRoutes from './routes/activities.js';
 import adminRoutes from './routes/admin.js';
+import registrationRoutes from './routes/registrations.js';
+import clubRoutes from './routes/clubs.js';
+import announcementRoutes from './routes/announcements.js';
+import ticketRoutes from './routes/tickets.js';
+import resourceRoutes from './routes/resources.js';
+import settingRoutes from './routes/settings.js';
 
 dotenv.config();
 
@@ -54,6 +60,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/registrations', registrationRoutes);
+app.use('/api/clubs', clubRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/tickets', ticketRoutes);
+app.use('/api/resources', resourceRoutes);
+app.use('/api/settings', settingRoutes);
 
 // In production, serve the built frontend assets
 const distPath = path.resolve(__dirname, '../dist');

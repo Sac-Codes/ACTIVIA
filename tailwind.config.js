@@ -8,20 +8,29 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ACTIVIA Specific Design Tokens
-        activia: {
-          dark: '#080D1C',        // Primary background
-          surface: '#10172B',     // Secondary background
-          elevated: '#161F36',    // Elevated surface
-          border: '#233055',      // Card & panel borders
-          blue: '#6C83FF',        // Primary accent
-          purple: '#A78BFA',      // Secondary accent
-          cyan: '#46D8F5',        // Cyan accent
-          mint: '#43C99A',        // Success accent
-          amber: '#F5B95B',       // Warning accent
-          rose: '#FF7185',        // Error accent
-          text: '#F4F6FF',        // Main text (dark mode)
-          muted: '#A3AEC7',       // Secondary text (dark mode)
+        // Professional Clean White SaaS Palette
+        app: {
+          bg: '#FFFFFF',
+          secondary: '#F7F9FC',
+          card: '#FFFFFF',
+          border: '#E5EAF1',
+          'border-subtle': '#EEF2F6',
+          text: '#172033',
+          muted: '#64748B',
+          subtle: '#94A3B8',
+          brand: '#4F46E5',
+          'brand-hover': '#4338CA',
+          'brand-light': '#EEF2FF',
+          accent: '#0EA5A4',
+          'accent-light': '#F0FDFA',
+          supporting: '#F59E0B',
+          'supporting-light': '#FFFBEB',
+          success: '#16A34A',
+          'success-light': '#F0FDF4',
+          warning: '#D97706',
+          'warning-light': '#FFFBEB',
+          error: '#DC2626',
+          'error-light': '#FEF2F2',
         },
         brand: {
           50: '#eef2ff',
@@ -36,10 +45,19 @@ export default {
           900: '#312e81',
           950: '#1e1b4b',
         },
-        navy: {
-          800: '#111827',
-          900: '#0f172a',
-          950: '#020617',
+        activia: {
+          dark: '#080D1C',
+          surface: '#10172B',
+          elevated: '#161F36',
+          border: '#233055',
+          blue: '#4F46E5',
+          purple: '#7C3AED',
+          cyan: '#0EA5A4',
+          mint: '#16A34A',
+          amber: '#F59E0B',
+          rose: '#DC2626',
+          text: '#172033',
+          muted: '#64748B',
         }
       },
       fontFamily: {
@@ -47,20 +65,9 @@ export default {
         display: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
       },
       boxShadow: {
-        'glow-blue': '0 0 25px -5px rgba(108, 131, 255, 0.4)',
-        'glow-cyan': '0 0 25px -5px rgba(70, 216, 245, 0.4)',
-        'glow-purple': '0 0 25px -5px rgba(167, 139, 250, 0.4)',
-        'glow-mint': '0 0 25px -5px rgba(67, 201, 154, 0.4)',
-      },
-      animation: {
-        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'float': 'float 6s ease-in-out infinite',
-      },
-      keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-10px)' },
-        }
+        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)',
+        'card-hover': '0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
+        'dropdown': '0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04)',
       }
     },
   },

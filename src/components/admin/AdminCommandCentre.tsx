@@ -12,9 +12,7 @@ import {
   Download,
   Calendar,
   Send,
-  Sparkles,
   BarChart3,
-  PieChart as PieChartIcon,
   Search,
   Check,
   X
@@ -29,9 +27,7 @@ import {
   Legend,
   PieChart,
   Pie,
-  Cell,
-  LineChart,
-  Line
+  Cell
 } from 'recharts';
 import {
   AdminAnalytics,
@@ -68,7 +64,7 @@ export const AdminCommandCentre: React.FC<AdminCommandCentreProps> = ({
   onUpdateFeedbackStatus,
   onExportCsv,
 }) => {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'settings' | 'venues' | 'broadcast' | 'feedback_queue' | 'audit'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'settings' | 'broadcast' | 'audit'>('analytics');
 
   // Settings form state
   const [schoolName, setSchoolName] = useState(settings.schoolName);
@@ -83,9 +79,6 @@ export const AdminCommandCentre: React.FC<AdminCommandCentreProps> = ({
   const [annAudience, setAnnAudience] = useState<Announcement['targetAudience']>('All School');
   const [annPriority, setAnnPriority] = useState<Announcement['priority']>('normal');
   const [annSuccess, setAnnSuccess] = useState(false);
-
-  // Feedback reply state
-  const [feedbackReplyText, setFeedbackReplyText] = useState<Record<string, string>>({});
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,11 +100,10 @@ export const AdminCommandCentre: React.FC<AdminCommandCentreProps> = ({
       title: annTitle.trim(),
       body: annBody.trim(),
       publisher: persona.name,
-      publisherRole: persona.role === 'admin' ? 'Super Admin Directorate' : 'Activity Coordinator',
+      publisherRole: 'Administrator',
       publisherAvatar: persona.avatar,
       priority: annPriority,
       targetAudience: annAudience,
-      category: 'Official Directorate Circular',
     });
 
     setAnnTitle('');
@@ -120,216 +112,121 @@ export const AdminCommandCentre: React.FC<AdminCommandCentreProps> = ({
     setTimeout(() => setAnnSuccess(false), 3000);
   };
 
+  const chartColors = ['#4F46E5', '#0EA5A4', '#F59E0B', '#16A34A', '#8B5CF6', '#EC4899'];
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 pb-12">
+    <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-activia-rose flex items-center gap-1.5">
-            <Shield className="w-3.5 h-3.5" />
-            Executive School Command Centre
-          </span>
-          <h2 className="text-2xl font-bold font-display text-white mt-0.5">
-            Institutional Administration & Intelligence
+          <h2 className="text-xl sm:text-2xl font-bold font-display text-app-text">
+            Administrator Command Centre
           </h2>
-          <p className="text-xs text-activia-muted mt-1">
-            School-wide participation analytics, venue scheduling, parameter configuration, and audit records.
+          <p className="text-xs sm:text-sm text-app-muted mt-1">
+            Institutional governance cockpit for co-curricular compliance, analytics, setting controls, and audit trails.
           </p>
         </div>
 
-        {/* Tab Selector */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-activia-surface border border-activia-border overflow-x-auto scrollbar-none self-start sm:self-auto">
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-1.5 p-1 rounded-lg bg-app-secondary border border-app-border self-start md:self-auto">
           <button
             onClick={() => setActiveTab('analytics')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'analytics' ? 'bg-activia-blue text-white shadow' : 'text-activia-muted hover:text-white'
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              activeTab === 'analytics'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-app-muted hover:text-app-text'
             }`}
           >
-            Analytics & Reports
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>Analytics</span>
           </button>
           <button
             onClick={() => setActiveTab('broadcast')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'broadcast' ? 'bg-activia-blue text-white shadow' : 'text-activia-muted hover:text-white'
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              activeTab === 'broadcast'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-app-muted hover:text-app-text'
             }`}
           >
-            Global Broadcast
-          </button>
-          <button
-            onClick={() => setActiveTab('venues')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'venues' ? 'bg-activia-blue text-white shadow' : 'text-activia-muted hover:text-white'
-            }`}
-          >
-            Venues ({venues.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('feedback_queue')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'feedback_queue' ? 'bg-activia-blue text-white shadow' : 'text-activia-muted hover:text-white'
-            }`}
-          >
-            Student Voice Queue
+            <Send className="w-3.5 h-3.5" />
+            <span>Broadcasts</span>
           </button>
           <button
             onClick={() => setActiveTab('settings')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'settings' ? 'bg-activia-blue text-white shadow' : 'text-activia-muted hover:text-white'
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              activeTab === 'settings'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-app-muted hover:text-app-text'
             }`}
           >
-            School Setup
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>School Settings</span>
           </button>
           <button
             onClick={() => setActiveTab('audit')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'audit' ? 'bg-activia-blue text-white shadow' : 'text-activia-muted hover:text-white'
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              activeTab === 'audit'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-app-muted hover:text-app-text'
             }`}
           >
-            Audit Logs
+            <ScrollText className="w-3.5 h-3.5" />
+            <span>Audit Trail</span>
           </button>
         </div>
       </div>
 
-      {/* Summary Metrics Cards Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-        <div className="p-4 rounded-2xl bg-activia-surface border border-activia-border">
-          <span className="text-[11px] text-activia-muted">Open Activities</span>
-          <p className="text-xl font-extrabold text-white font-display mt-1">{analytics.openActivities}</p>
+      {/* Real Statistics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl border border-app-border p-5 shadow-xs">
+          <span className="text-xs font-medium text-app-muted">Total Registered Programs</span>
+          <p className="text-2xl font-bold text-app-text mt-2">{analytics.totalActivities}</p>
+          <p className="text-xs text-app-muted mt-1">Across 6 academic faculties</p>
         </div>
-        <div className="p-4 rounded-2xl bg-activia-surface border border-activia-border">
-          <span className="text-[11px] text-activia-muted">Registrations</span>
-          <p className="text-xl font-extrabold text-activia-blue font-display mt-1">{analytics.totalRegistrations}</p>
+
+        <div className="bg-white rounded-xl border border-app-border p-5 shadow-xs">
+          <span className="text-xs font-medium text-app-muted">Total Student Enrollments</span>
+          <p className="text-2xl font-bold text-app-text mt-2">{analytics.totalRegistrations}</p>
+          <p className="text-xs text-emerald-600 font-medium mt-1">Active participant records</p>
         </div>
-        <div className="p-4 rounded-2xl bg-activia-surface border border-activia-border">
-          <span className="text-[11px] text-activia-muted">Pending Approvals</span>
-          <p className="text-xl font-extrabold text-amber-400 font-display mt-1">{analytics.pendingApprovals}</p>
+
+        <div className="bg-white rounded-xl border border-app-border p-5 shadow-xs">
+          <span className="text-xs font-medium text-app-muted">Pending Administrative Tasks</span>
+          <p className="text-2xl font-bold text-app-text mt-2">{analytics.pendingApprovals}</p>
+          <p className="text-xs text-amber-600 font-medium mt-1">Awaiting review</p>
         </div>
-        <div className="p-4 rounded-2xl bg-activia-surface border border-activia-border">
-          <span className="text-[11px] text-activia-muted">Student Reach</span>
-          <p className="text-xl font-extrabold text-activia-cyan font-display mt-1">{analytics.participatingStudents}</p>
-        </div>
-        <div className="p-4 rounded-2xl bg-activia-surface border border-activia-border">
-          <span className="text-[11px] text-activia-muted">Verified Badges</span>
-          <p className="text-xl font-extrabold text-activia-mint font-display mt-1">{analytics.verifiedAchievements}</p>
-        </div>
-        <div className="p-4 rounded-2xl bg-activia-surface border border-activia-border">
-          <span className="text-[11px] text-activia-muted">Voice Tickets</span>
-          <p className="text-xl font-extrabold text-activia-purple font-display mt-1">{analytics.openFeedbackTickets}</p>
+
+        <div className="bg-white rounded-xl border border-app-border p-5 shadow-xs">
+          <span className="text-xs font-medium text-app-muted">School Facilities Monitored</span>
+          <p className="text-2xl font-bold text-app-text mt-2">{venues.length}</p>
+          <p className="text-xs text-app-muted mt-1">Collision-free scheduling</p>
         </div>
       </div>
 
-      {/* 1. ANALYTICS & CSV REPORTS */}
+      {/* TAB 1: ANALYTICS & CSV EXPORT */}
       {activeTab === 'analytics' && (
         <div className="space-y-6">
-          {/* Export Report CSV Actions Bar */}
-          <div className="p-4 rounded-2xl bg-activia-surface border border-activia-border flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h4 className="text-xs font-bold text-white flex items-center gap-2">
-                <FileSpreadsheet className="w-4 h-4 text-activia-mint" />
-                Institutional Data Exports (CSV)
-              </h4>
-              <p className="text-[11px] text-activia-muted">
-                Download filtered audit-compliant reports for accreditation or board review.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => onExportCsv('participation')}
-                className="px-3 py-1.5 rounded-xl bg-activia-elevated hover:bg-white/10 text-white text-xs font-semibold border border-white/10 transition-colors flex items-center gap-1.5"
-              >
-                <Download className="w-3.5 h-3.5" />
-                Participation Report
-              </button>
-              <button
-                onClick={() => onExportCsv('approvals')}
-                className="px-3 py-1.5 rounded-xl bg-activia-elevated hover:bg-white/10 text-white text-xs font-semibold border border-white/10 transition-colors flex items-center gap-1.5"
-              >
-                <Download className="w-3.5 h-3.5" />
-                Approvals Queue
-              </button>
-              <button
-                onClick={() => onExportCsv('competitions')}
-                className="px-3 py-1.5 rounded-xl bg-activia-elevated hover:bg-white/10 text-white text-xs font-semibold border border-white/10 transition-colors flex items-center gap-1.5"
-              >
-                <Download className="w-3.5 h-3.5" />
-                Competitions Catalog
-              </button>
-              <button
-                onClick={() => onExportCsv('achievements')}
-                className="px-3 py-1.5 rounded-xl bg-activia-elevated hover:bg-white/10 text-white text-xs font-semibold border border-white/10 transition-colors flex items-center gap-1.5"
-              >
-                <Download className="w-3.5 h-3.5" />
-                Credentials Ledger
-              </button>
-            </div>
-          </div>
-
-          {/* Interactive Recharts Grid */}
+          {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Chart 1: Registration Velocity */}
-            <div className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl space-y-3">
-              <h4 className="text-sm font-bold text-white font-display flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-activia-blue" />
-                Monthly Registration Velocity vs Completion
-              </h4>
-              <p className="text-xs text-activia-muted">
-                Tracks total sign-ups against verified certificates across recent school terms.
-              </p>
-
-              <div className="h-64 w-full pt-2">
+            <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs space-y-4">
+              <h3 className="text-sm font-bold text-app-text">Monthly Registration Velocity</h3>
+              <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={analytics.monthlyRegistrations}>
-                    <XAxis dataKey="month" stroke="#64748b" fontSize={11} />
-                    <YAxis stroke="#64748b" fontSize={11} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#10172b', borderColor: '#233055', borderRadius: '12px' }}
-                    />
-                    <Legend />
-                    <Bar dataKey="registrations" name="Registrations" fill="#6C83FF" radius={[6, 6, 0, 0]} />
-                    <Bar dataKey="completions" name="Completions" fill="#43C99A" radius={[6, 6, 0, 0]} />
+                    <XAxis dataKey="month" stroke="#94A3B8" fontSize={11} />
+                    <YAxis stroke="#94A3B8" fontSize={11} />
+                    <Tooltip />
+                    <Legend wrapperStyle={{ fontSize: '11px' }} />
+                    <Bar dataKey="registrations" name="Applications" fill="#4F46E5" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="completions" name="Verified Completions" fill="#0EA5A4" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            {/* Chart 2: Grade Reach Distribution */}
-            <div className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl space-y-3">
-              <h4 className="text-sm font-bold text-white font-display flex items-center gap-2">
-                <Users className="w-4 h-4 text-activia-cyan" />
-                Student Participation by Grade Level
-              </h4>
-              <p className="text-xs text-activia-muted">
-                Enrolled class cohort vs students with active registrations.
-              </p>
-
-              <div className="h-64 w-full pt-2">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={analytics.gradeReach}>
-                    <XAxis dataKey="grade" stroke="#64748b" fontSize={11} />
-                    <YAxis stroke="#64748b" fontSize={11} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#10172b', borderColor: '#233055', borderRadius: '12px' }}
-                    />
-                    <Legend />
-                    <Bar dataKey="enrolled" name="Total Enrolled" fill="#233055" radius={[6, 6, 0, 0]} />
-                    <Bar dataKey="participating" name="Actively Participating" fill="#46D8F5" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Chart 3: Sector Distribution Pie */}
-            <div className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl space-y-3">
-              <h4 className="text-sm font-bold text-white font-display flex items-center gap-2">
-                <PieChartIcon className="w-4 h-4 text-activia-purple" />
-                Participation Breakdown by Extracurricular Sector
-              </h4>
-              <p className="text-xs text-activia-muted">
-                Distribution of student engagement across disciplines.
-              </p>
-
-              <div className="h-64 w-full pt-2">
+            <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs space-y-4">
+              <h3 className="text-sm font-bold text-app-text">Program Category Distribution</h3>
+              <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -339,326 +236,244 @@ export const AdminCommandCentre: React.FC<AdminCommandCentreProps> = ({
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
-                      label={(entry: any) => `${entry.name || ''} (${entry.count || 0})`}
+                      label={({ name }) => name}
                     >
-                      {analytics.categoryDistribution.map((entry, idx) => (
-                        <Cell key={`cell-${idx}`} fill={entry.color} />
+                      {analytics.categoryDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
                       ))}
                     </Pie>
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#10172b', borderColor: '#233055', borderRadius: '12px' }}
-                    />
+                    <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
             </div>
+          </div>
 
-            {/* Chart 4: House Cup Engagement */}
-            <div className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl space-y-3">
-              <h4 className="text-sm font-bold text-white font-display flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-amber-400" />
-                House Championship Point Momentum
-              </h4>
-              <p className="text-xs text-activia-muted">
-                Overall points standing and competition participation by house.
-              </p>
-
-              <div className="h-64 w-full pt-2">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={analytics.houseEngagement}>
-                    <XAxis dataKey="house" stroke="#64748b" fontSize={11} />
-                    <YAxis stroke="#64748b" fontSize={11} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#10172b', borderColor: '#233055', borderRadius: '12px' }}
-                    />
-                    <Legend />
-                    <Bar dataKey="points" name="Total House Points" fill="#F5B95B" radius={[6, 6, 0, 0]} />
-                    <Bar dataKey="registrations" name="Active Registrations" fill="#6C83FF" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+          {/* CSV Export Centre */}
+          <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs space-y-3">
+            <h3 className="text-sm font-bold text-app-text">Data Export Centre</h3>
+            <p className="text-xs text-app-muted">
+              Download clean CSV spreadsheets for institutional reviews, board audits, and accreditation records.
+            </p>
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <button
+                onClick={() => onExportCsv('participation')}
+                className="px-3.5 py-2 rounded-lg bg-app-secondary hover:bg-indigo-50 border border-app-border text-xs font-semibold text-app-text hover:text-indigo-700 transition-colors flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Export Participation Records (CSV)</span>
+              </button>
+              <button
+                onClick={() => onExportCsv('approvals')}
+                className="px-3.5 py-2 rounded-lg bg-app-secondary hover:bg-indigo-50 border border-app-border text-xs font-semibold text-app-text hover:text-indigo-700 transition-colors flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5 text-teal-600" />
+                <span>Export Applications Ledger (CSV)</span>
+              </button>
+              <button
+                onClick={() => onExportCsv('competitions')}
+                className="px-3.5 py-2 rounded-lg bg-app-secondary hover:bg-indigo-50 border border-app-border text-xs font-semibold text-app-text hover:text-indigo-700 transition-colors flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5 text-amber-600" />
+                <span>Export Competitions Summary (CSV)</span>
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 2. GLOBAL BROADCAST */}
+      {/* TAB 2: BROADCAST SYSTEM */}
       {activeTab === 'broadcast' && (
-        <div className="max-w-2xl mx-auto p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl space-y-4">
-          <div>
-            <h3 className="text-base font-bold text-white font-display">Broadcast Official Announcement</h3>
-            <p className="text-xs text-activia-muted mt-0.5">
-              Send priority announcements to the entire student body, specific classes, or clubs.
+        <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs max-w-2xl mx-auto space-y-4">
+          <div className="pb-3 border-b border-app-border">
+            <h3 className="text-base font-bold text-app-text">School-Wide Announcement Broadcast</h3>
+            <p className="text-xs text-app-muted mt-0.5">
+              Publish authorized notifications that will appear across all student and teacher dashboards.
             </p>
           </div>
 
           {annSuccess && (
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-400">
-              Notice broadcasted and added to active notification bells.
+            <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span>Announcement broadcasted successfully!</span>
             </div>
           )}
 
-          <form onSubmit={handleBroadcast} className="space-y-4">
+          <form onSubmit={handleBroadcast} className="space-y-4 text-xs">
             <div>
-              <label className="text-xs text-activia-muted block mb-1">Notice Headline *</label>
+              <label className="text-app-muted block mb-1 font-medium">Announcement Title *</label>
               <input
                 type="text"
                 required
-                placeholder="e.g. Schedule Alteration: All Outdoor Sports Suspended Due to Rain"
+                placeholder="e.g. Schedule Change for Inter-House Track Trials"
                 value={annTitle}
                 onChange={e => setAnnTitle(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+                className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-activia-muted block mb-1">Target Audience</label>
+                <label className="text-app-muted block mb-1 font-medium">Priority Level</label>
                 <select
-                  value={annAudience}
-                  onChange={e => setAnnAudience(e.target.value as any)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+                  value={annPriority}
+                  onChange={e => setAnnPriority(e.target.value as any)}
+                  className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text"
                 >
-                  <option value="All School">All School (Whole Institution)</option>
-                  <option value="Senior Secondary">Senior Secondary (Grades 10-12)</option>
-                  <option value="Junior High">Junior High (Grades 6-9)</option>
-                  <option value="STEM Clubs">STEM & Robotics Guilds</option>
-                  <option value="House Leaders">House Captains & Prefects</option>
+                  <option value="normal">Normal Circular</option>
+                  <option value="urgent">Urgent Alert</option>
+                  <option value="pinned">Pinned Notice</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-xs text-activia-muted block mb-1">Broadcast Priority</label>
+                <label className="text-app-muted block mb-1 font-medium">Target Audience</label>
                 <select
-                  value={annPriority}
-                  onChange={e => setAnnPriority(e.target.value as any)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+                  value={annAudience}
+                  onChange={e => setAnnAudience(e.target.value as any)}
+                  className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text"
                 >
-                  <option value="normal">Normal Bulletin</option>
-                  <option value="high">High Priority</option>
-                  <option value="urgent">Urgent / Emergency Alert</option>
+                  <option value="All School">All School (Students & Staff)</option>
+                  <option value="Senior Secondary">Senior Secondary Only</option>
+                  <option value="Junior High">Junior High Only</option>
+                  <option value="STEM Clubs">STEM Clubs</option>
+                  <option value="House Leaders">House Captains & Leaders</option>
                 </select>
               </div>
             </div>
 
             <div>
-              <label className="text-xs text-activia-muted block mb-1">Circular Body *</label>
+              <label className="text-app-muted block mb-1 font-medium">Announcement Body *</label>
               <textarea
                 required
-                rows={4}
-                placeholder="Compose authoritative message content..."
+                placeholder="Detailed circular text..."
                 value={annBody}
                 onChange={e => setAnnBody(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue resize-none"
+                rows={4}
+                className="w-full p-3 rounded-lg border border-app-border bg-white text-app-text focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-activia-blue hover:bg-activia-blue/90 text-white text-xs font-bold shadow-lg transition-all flex items-center justify-center gap-2"
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-xs flex items-center gap-2"
             >
               <Send className="w-3.5 h-3.5" />
-              Dispatch School-Wide Broadcast
+              <span>Broadcast Announcement</span>
             </button>
           </form>
         </div>
       )}
 
-      {/* 3. VENUE MANAGEMENT */}
-      {activeTab === 'venues' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-white/5">
-            <h3 className="text-base font-bold text-white font-display">Campus Venues & Capacity Directory</h3>
-            <span className="text-xs text-activia-muted">
-              Reservations monitored by automated double-booking prevention engine.
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {venues.map(v => (
-              <div key={v.id} className="p-5 rounded-2xl bg-activia-surface border border-activia-border space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-white/5 text-activia-cyan">
-                    {v.code}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
-                    Operational
-                  </span>
-                </div>
-
-                <h4 className="text-sm font-bold text-white">{v.name}</h4>
-                <p className="text-xs text-activia-muted">{v.building}</p>
-
-                <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs text-activia-muted">
-                  <span>Max Capacity:</span>
-                  <span className="text-white font-bold">{v.capacity} seats</span>
-                </div>
-
-                <div className="flex flex-wrap gap-1 pt-1">
-                  {v.features.map(f => (
-                    <span key={f} className="text-[10px] px-2 py-0.5 rounded bg-white/[0.03] text-activia-text">
-                      {f}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 4. STUDENT VOICE QUEUE */}
-      {activeTab === 'feedback_queue' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-white/5">
-            <h3 className="text-base font-bold text-white font-display">Student Voice Resolution Queue</h3>
-            <span className="text-xs text-activia-muted">
-              Review proposals, update status, and communicate official responses.
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {feedbackTickets.map(ticket => (
-              <div key={ticket.id} className="p-5 rounded-2xl bg-activia-surface border border-activia-border space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white">{ticket.title}</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-activia-blue/20 text-activia-blue">
-                    {ticket.status.replace(/_/g, ' ').toUpperCase()}
-                  </span>
-                </div>
-                <p className="text-xs text-activia-muted">{ticket.description}</p>
-                <p className="text-[10px] text-activia-cyan">
-                  From: {ticket.submittedBy} • Category: {ticket.category}
-                </p>
-
-                {/* Reply section */}
-                <div className="pt-2 flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="Enter official resolution response..."
-                    value={feedbackReplyText[ticket.id] || ''}
-                    onChange={e => setFeedbackReplyText({ ...feedbackReplyText, [ticket.id]: e.target.value })}
-                    className="flex-1 px-3 py-1.5 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white"
-                  />
-                  <button
-                    onClick={() => {
-                      const reply = feedbackReplyText[ticket.id] || 'Under active administrative consideration.';
-                      onUpdateFeedbackStatus(ticket.id, 'resolved', reply);
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-activia-mint/20 hover:bg-activia-mint/30 text-activia-mint border border-activia-mint/40 text-xs font-semibold"
-                  >
-                    Resolve Ticket
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 5. SCHOOL SETUP */}
+      {/* TAB 3: INSTITUTIONAL SETTINGS */}
       {activeTab === 'settings' && (
-        <div className="max-w-xl mx-auto p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl space-y-4">
-          <div>
-            <h3 className="text-base font-bold text-white font-display">Institution Branding & Parameters</h3>
-            <p className="text-xs text-activia-muted mt-0.5">
-              Customize institution title, academic calendar parameters, and principal seal.
+        <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs max-w-2xl mx-auto space-y-4">
+          <div className="pb-3 border-b border-app-border">
+            <h3 className="text-base font-bold text-app-text">Institutional Parameters</h3>
+            <p className="text-xs text-app-muted mt-0.5">
+              Configure school branding, academic year parameters, and registration eligibility rules.
             </p>
           </div>
 
           {settingsSuccess && (
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-400">
-              Institutional configuration updated successfully.
+            <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span>Institutional parameters saved to database!</span>
             </div>
           )}
 
-          <form onSubmit={handleSaveSettings} className="space-y-4">
+          <form onSubmit={handleSaveSettings} className="space-y-4 text-xs">
             <div>
-              <label className="text-xs text-activia-muted block mb-1">School Name</label>
+              <label className="text-app-muted block mb-1 font-medium">Institution Name *</label>
               <input
                 type="text"
+                required
                 value={schoolName}
                 onChange={e => setSchoolName(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white"
+                className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
               />
             </div>
+
             <div>
-              <label className="text-xs text-activia-muted block mb-1">Institutional Motto</label>
+              <label className="text-app-muted block mb-1 font-medium">School Motto</label>
               <input
                 type="text"
                 value={schoolMotto}
                 onChange={e => setSchoolMotto(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white"
+                className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text"
               />
             </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-activia-muted block mb-1">Academic Year</label>
+                <label className="text-app-muted block mb-1 font-medium">Academic Session</label>
                 <input
                   type="text"
                   value={academicYear}
                   onChange={e => setAcademicYear(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text"
                 />
               </div>
               <div>
-                <label className="text-xs text-activia-muted block mb-1">Current Term</label>
+                <label className="text-app-muted block mb-1 font-medium">Current Term / Semester</label>
                 <input
                   type="text"
                   value={currentTerm}
                   onChange={e => setCurrentTerm(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white"
+                  className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text"
                 />
               </div>
             </div>
 
             <button
               type="submit"
-              className="w-full py-2.5 rounded-xl bg-activia-blue hover:bg-activia-blue/90 text-white text-xs font-bold shadow-lg transition-all"
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-xs"
             >
-              Update School Settings
+              Save Settings
             </button>
           </form>
         </div>
       )}
 
-      {/* 6. SECURITY & AUDIT LOGS */}
+      {/* TAB 4: AUDIT TRAIL */}
       {activeTab === 'audit' && (
-        <div className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-white/5">
+        <div className="bg-white rounded-xl border border-app-border shadow-xs overflow-hidden">
+          <div className="p-5 border-b border-app-border flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-white font-display">System Security & Audit Trail</h3>
-              <p className="text-xs text-activia-muted mt-0.5">
-                Cryptographic immutable log of administrative and teacher operations.
+              <h3 className="text-base font-bold text-app-text">System Audit Trail</h3>
+              <p className="text-xs text-app-muted mt-0.5">
+                Immutable chronological ledger of administrative operations and status changes.
               </p>
             </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-activia-muted">
-              <thead className="bg-white/5 text-white uppercase text-[10px] tracking-wider">
+            <table className="w-full text-left text-xs text-app-text">
+              <thead className="bg-app-secondary border-b border-app-border text-[11px] font-semibold text-app-muted uppercase tracking-wider">
                 <tr>
-                  <th className="p-3">Timestamp</th>
-                  <th className="p-3">Actor</th>
-                  <th className="p-3">Action</th>
-                  <th className="p-3">Entity</th>
-                  <th className="p-3">Details</th>
+                  <th className="px-5 py-3">Timestamp</th>
+                  <th className="px-5 py-3">Action</th>
+                  <th className="px-5 py-3">Actor</th>
+                  <th className="px-5 py-3">Details</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
-                {auditLogs.slice(0, 15).map(log => (
-                  <tr key={log.id} className="hover:bg-white/[0.02]">
-                    <td className="p-3 font-mono text-[10px] text-activia-muted">
-                      {new Date(log.timestamp).toLocaleString()}
+              <tbody className="divide-y divide-app-border">
+                {auditLogs.slice(0, 20).map(log => (
+                  <tr key={log.id} className="hover:bg-app-secondary/40">
+                    <td className="px-5 py-3 text-app-muted whitespace-nowrap">
+                      {log.timestamp || log.created_at || 'Just now'}
                     </td>
-                    <td className="p-3 font-semibold text-white">
-                      {log.actorName} ({log.actorRole})
+                    <td className="px-5 py-3">
+                      <span className="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-indigo-50 text-indigo-700">
+                        {log.action}
+                      </span>
                     </td>
-                    <td className="p-3 font-mono text-[10px] text-activia-cyan">
-                      {log.action}
+                    <td className="px-5 py-3 font-medium">
+                      {log.actorName || log.admin_username || 'system'}
                     </td>
-                    <td className="p-3">{log.targetEntity}</td>
-                    <td className="p-3 text-activia-text">{log.details}</td>
+                    <td className="px-5 py-3 text-app-muted">
+                      {log.details}
+                    </td>
                   </tr>
                 ))}
               </tbody>

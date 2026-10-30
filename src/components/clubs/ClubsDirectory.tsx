@@ -5,14 +5,11 @@ import {
   Trophy,
   Calendar,
   MapPin,
-  Sparkles,
   Check,
   Plus,
-  Flame,
   Award,
-  BookOpen,
-  ArrowRight,
-  ChevronRight
+  ChevronRight,
+  Filter
 } from 'lucide-react';
 import { Club, House } from '../../types';
 
@@ -37,112 +34,111 @@ export const ClubsDirectory: React.FC<ClubsDirectoryProps> = ({
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 pb-12">
+    <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-activia-mint flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5" />
-            Student Guilds & House Cup Standings
-          </span>
-          <h2 className="text-2xl font-bold font-display text-white mt-0.5">
-            Clubs & House Championship
+          <h2 className="text-xl sm:text-2xl font-bold font-display text-app-text">
+            Clubs, Societies & House Standings
           </h2>
-          <p className="text-xs text-activia-muted mt-1">
-            Join recognized student societies, track weekly schedules, and inspect House Points standings.
+          <p className="text-xs sm:text-sm text-app-muted mt-1">
+            Join recognized student organizations, explore meeting agendas, and inspect inter-house championship points.
           </p>
         </div>
 
         {/* View Switcher Pills */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-activia-surface border border-activia-border self-start sm:self-auto">
+        <div className="flex items-center gap-1.5 p-1 rounded-lg bg-app-secondary border border-app-border self-start sm:self-auto">
           <button
             onClick={() => setActiveTab('clubs')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${
               activeTab === 'clubs'
-                ? 'bg-activia-blue text-white shadow-md'
-                : 'text-activia-muted hover:text-white'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-app-muted hover:text-app-text'
             }`}
           >
-            Student Clubs ({clubs.length})
+            Clubs & Societies ({clubs.length})
           </button>
           <button
             onClick={() => setActiveTab('houses')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${
               activeTab === 'houses'
-                ? 'bg-activia-blue text-white shadow-md'
-                : 'text-activia-muted hover:text-white'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-app-muted hover:text-app-text'
             }`}
           >
-            House Cup Standings ({houses.length})
+            House Championship ({houses.length})
           </button>
         </div>
       </div>
 
       {/* CLUBS TAB */}
       {activeTab === 'clubs' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredClubs.map(club => (
               <div
                 key={club.id}
-                className="rounded-3xl bg-activia-surface border border-activia-border/70 hover:border-activia-blue/50 transition-all p-6 shadow-xl flex flex-col justify-between group"
+                className="bg-white rounded-xl border border-app-border hover:border-indigo-300 shadow-xs hover:shadow-card-hover transition-all p-5 flex flex-col justify-between"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-activia-elevated border border-white/10 text-activia-cyan">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 uppercase tracking-wider">
                       {club.code}
                     </span>
                     <button
                       onClick={() => onToggleMembership(club.id)}
-                      className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
                         club.isMember
-                          ? 'bg-activia-mint/20 text-activia-mint border border-activia-mint/40 hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/40'
-                          : 'bg-activia-blue/20 text-activia-blue border border-activia-blue/30 hover:bg-activia-blue hover:text-white'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200'
+                          : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
                       }`}
                     >
                       {club.isMember ? (
                         <>
-                          <Check className="w-3.5 h-3.5" /> Member
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Member</span>
                         </>
                       ) : (
                         <>
-                          <Plus className="w-3.5 h-3.5" /> Join Club
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Join Club</span>
                         </>
                       )}
                     </button>
                   </div>
 
-                  <h3 className="text-lg font-bold font-display text-white group-hover:text-activia-blue transition-colors">
-                    {club.name}
-                  </h3>
-                  <p className="text-xs text-activia-cyan font-medium mt-0.5">{club.tagline}</p>
-                  <p className="text-xs text-activia-muted mt-2 leading-relaxed">
-                    {club.description}
-                  </p>
+                  <div>
+                    <h3 className="text-base font-bold text-app-text">{club.name}</h3>
+                    <p className="text-xs text-app-muted leading-relaxed line-clamp-2 mt-1">
+                      {club.description}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-app-border-subtle space-y-1 text-xs text-app-muted">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-3.5 h-3.5 text-app-subtle flex-shrink-0" />
+                      <span>{club.meetingSchedule}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-app-subtle flex-shrink-0" />
+                      <span>Room {club.location}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="w-3.5 h-3.5 text-app-subtle flex-shrink-0" />
+                      <span>Advisor: {club.teacherMentor}</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="pt-4 mt-4 border-t border-white/5 space-y-2 text-xs text-activia-muted">
-                  <div className="flex items-center justify-between">
-                    <span>Mentor:</span>
-                    <span className="text-white font-medium">{club.teacherMentor}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>President:</span>
-                    <span className="text-white font-medium">{club.studentPresident}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Schedule:</span>
-                    <span className="text-activia-text font-medium">{club.meetingSchedule}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Meeting Venue:</span>
-                    <span className="text-activia-cyan font-medium">{club.location}</span>
-                  </div>
-
-                  <div className="pt-2 flex items-center justify-between text-[11px] font-semibold text-white/80">
-                    <span>{club.memberCount} Registered Members</span>
-                    <span>{club.projectsActive} Active Initiatives</span>
-                  </div>
+                <div className="mt-4 pt-3 border-t border-app-border flex items-center justify-between text-[11px] text-app-muted">
+                  <span>Roster: <strong className="text-app-text">{club.memberCount} active members</strong></span>
+                  <button
+                    onClick={() => onNavigate('activities')}
+                    className="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 hover:underline"
+                  >
+                    <span>Activities</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             ))}
@@ -153,56 +149,32 @@ export const ClubsDirectory: React.FC<ClubsDirectoryProps> = ({
       {/* HOUSES TAB */}
       {activeTab === 'houses' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {houses.map(house => (
               <div
                 key={house.id}
-                className="rounded-3xl bg-activia-surface border border-activia-border/70 p-6 shadow-xl flex flex-col justify-between relative overflow-hidden"
+                className="bg-white rounded-xl border border-app-border p-5 shadow-xs space-y-3"
               >
-                <div
-                  className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl pointer-events-none opacity-20"
-                  style={{ backgroundColor: house.color }}
-                />
-
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span
-                      className="px-2.5 py-1 rounded-full text-xs font-bold"
-                      style={{ backgroundColor: `${house.color}20`, color: house.color }}
-                    >
-                      Rank #{house.rank}
-                    </span>
-                    <Trophy className="w-5 h-5 text-amber-400" />
-                  </div>
-
-                  <h3 className="text-xl font-extrabold font-display text-white">{house.name}</h3>
-                  <p className="text-xs text-activia-muted italic mt-0.5">&ldquo;{house.motto}&rdquo;</p>
-
-                  <div className="my-5 p-4 rounded-2xl bg-activia-elevated/80 border border-white/5 text-center">
-                    <span className="text-[10px] text-activia-muted uppercase tracking-wider block">
-                      Total House Standings
-                    </span>
-                    <span className="text-3xl font-black font-display text-white mt-1 block">
-                      {house.points} pts
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 text-xs text-activia-muted">
-                    <p>Patron: <strong className="text-white">{house.patron}</strong></p>
-                    <p>Captain: <strong className="text-white">{house.captain}</strong></p>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-app-muted">
+                    Rank #{house.rank}
+                  </span>
+                  <Trophy className="w-4 h-4 text-amber-500" />
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-white/5">
-                  <h4 className="text-[11px] font-bold text-white mb-2">Recent Victories</h4>
-                  <ul className="text-[11px] text-activia-muted space-y-1">
-                    {house.recentAchievements.map((ach, i) => (
-                      <li key={i} className="flex items-center gap-1.5 truncate">
-                        <Award className="w-3 h-3 text-amber-400 flex-shrink-0" />
-                        <span className="truncate">{ach}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <div>
+                  <h3 className="text-lg font-bold text-app-text">{house.name}</h3>
+                  <p className="text-xs text-app-muted italic mt-0.5">&ldquo;{house.motto}&rdquo;</p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-app-secondary border border-app-border text-center">
+                  <span className="text-2xl font-bold text-indigo-700">{house.points}</span>
+                  <span className="text-xs text-app-muted block font-medium">Championship Points</span>
+                </div>
+
+                <div className="text-xs text-app-muted space-y-1">
+                  <p>Captain: <strong className="text-app-text">{house.captain}</strong></p>
+                  <p>Patron: <strong className="text-app-text">{house.patron}</strong></p>
                 </div>
               </div>
             ))}

@@ -9,7 +9,6 @@ import {
   Users,
   MapPin,
   Clock,
-  Sparkles,
   ChevronRight,
   Bookmark,
   CheckCircle2,
@@ -18,7 +17,7 @@ import {
   SlidersHorizontal,
   GraduationCap
 } from 'lucide-react';
-import { Activity, ActivityCategory, Registration, UserPersona } from '../../types';
+import { Activity, Registration, UserPersona } from '../../types';
 import { ACTIVITY_CATEGORIES } from '../../data/mockData';
 
 interface ActivityDiscoveryProps {
@@ -70,13 +69,13 @@ export const ActivityDiscovery: React.FC<ActivityDiscoveryProps> = ({
       return false;
     }
 
-    // Format (individual vs team)
+    // Format
     if (selectedFormat !== 'all' && act.participationFormat !== selectedFormat) {
       return false;
     }
 
     // Grade
-    if (selectedGrade !== 'all' && !act.eligibleGrades.includes(selectedGrade)) {
+    if (selectedGrade !== 'all' && act.eligibleGrades && !act.eligibleGrades.includes(selectedGrade)) {
       return false;
     }
 
@@ -92,19 +91,15 @@ export const ActivityDiscovery: React.FC<ActivityDiscoveryProps> = ({
   });
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 pb-12">
-      {/* Header and Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 pb-12">
+      {/* Header */}
+      <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-activia-cyan flex items-center gap-1.5">
-            <Compass className="w-3.5 h-3.5" />
-            Official Extracurricular Directory
-          </span>
-          <h2 className="text-2xl font-bold font-display text-white mt-0.5">
-            Activity Discovery Centre
+          <h2 className="text-xl sm:text-2xl font-bold font-display text-app-text">
+            Activity Discovery Hub
           </h2>
-          <p className="text-xs text-activia-muted mt-1">
-            Browse and filter through {activities.length} authorized school activities, competitions, and workshops.
+          <p className="text-xs sm:text-sm text-app-muted mt-1">
+            Browse through {activities.length} authorized school activities, inter-school competitions, and co-curricular workshops.
           </p>
         </div>
 
@@ -119,7 +114,7 @@ export const ActivityDiscovery: React.FC<ActivityDiscoveryProps> = ({
               setSearchQuery('');
               if (onClearCategoryFilter) onClearCategoryFilter();
             }}
-            className="self-start sm:self-auto px-3.5 py-1.5 rounded-xl bg-activia-surface hover:bg-white/10 text-xs text-activia-muted hover:text-white border border-activia-border transition-colors flex items-center gap-1.5"
+            className="self-start sm:self-auto px-3 py-1.5 rounded-lg bg-app-secondary hover:bg-white text-xs font-medium text-app-muted hover:text-app-text border border-app-border transition-colors flex items-center gap-1.5"
           >
             <X className="w-3.5 h-3.5" />
             Clear Active Filters
@@ -127,18 +122,20 @@ export const ActivityDiscovery: React.FC<ActivityDiscoveryProps> = ({
         )}
       </div>
 
-      {/* Category Pills Carousel */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+      {/* Category Filter Pills Carousel */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
         <button
           onClick={() => setSelectedCategory('all')}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+          className={`px-3.5 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 ${
             selectedCategory === 'all'
-              ? 'bg-activia-blue text-white shadow-lg shadow-activia-blue/30'
-              : 'bg-activia-surface hover:bg-activia-elevated text-activia-muted hover:text-white border border-activia-border'
+              ? 'bg-indigo-600 text-white font-semibold shadow-xs'
+              : 'bg-white text-app-muted hover:text-app-text hover:bg-app-secondary border border-app-border'
           }`}
         >
-          <Sparkles className="w-3.5 h-3.5" />
-          All Sectors ({activities.length})
+          <span>All Disciplines</span>
+          <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${selectedCategory === 'all' ? 'bg-white/20 text-white' : 'bg-app-secondary text-app-subtle'}`}>
+            {activities.length}
+          </span>
         </button>
 
         {ACTIVITY_CATEGORIES.map(cat => {
@@ -148,14 +145,14 @@ export const ActivityDiscovery: React.FC<ActivityDiscoveryProps> = ({
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 ${
                 isSelected
-                  ? 'bg-activia-blue text-white shadow-lg shadow-activia-blue/30'
-                  : 'bg-activia-surface hover:bg-activia-elevated text-activia-muted hover:text-white border border-activia-border'
+                  ? 'bg-indigo-600 text-white font-semibold shadow-xs'
+                  : 'bg-white text-app-muted hover:text-app-text hover:bg-app-secondary border border-app-border'
               }`}
             >
               <span>{cat.shortName}</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${isSelected ? 'bg-white/20 text-white' : 'bg-white/5 text-activia-muted'}`}>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${isSelected ? 'bg-white/20 text-white' : 'bg-app-secondary text-app-subtle'}`}>
                 {count}
               </span>
             </button>
@@ -163,191 +160,161 @@ export const ActivityDiscovery: React.FC<ActivityDiscoveryProps> = ({
         })}
       </div>
 
-      {/* Advanced Filter Controls Bar */}
-      <div className="p-4 rounded-2xl bg-activia-surface border border-activia-border/80 shadow-lg flex flex-wrap items-center justify-between gap-3">
+      {/* Search and Secondary Filter Bar */}
+      <div className="bg-white rounded-xl border border-app-border p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
         {/* Search */}
         <div className="relative flex-1 min-w-[240px]">
-          <Search className="w-4 h-4 text-activia-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-app-muted absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search title, keywords, teacher, venue..."
+            placeholder="Search by title, teacher, keywords, or location..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-activia-elevated/70 border border-activia-border text-xs text-white placeholder:text-activia-muted focus:outline-none focus:border-activia-blue"
+            className="w-full pl-9 pr-3 py-2 rounded-lg bg-app-secondary focus:bg-white border border-app-border text-xs text-app-text placeholder:text-app-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all"
           />
         </div>
 
-        {/* Dropdowns */}
+        {/* Dropdown Filters */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Format */}
           <select
             value={selectedFormat}
             onChange={e => setSelectedFormat(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-activia-elevated/70 border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+            className="px-3 py-2 rounded-lg bg-white border border-app-border text-xs text-app-text focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
           >
-            <option value="all">Participation: All</option>
-            <option value="individual">Individual Only</option>
-            <option value="team">Team Only</option>
+            <option value="all">Format: All</option>
+            <option value="individual">Individual</option>
+            <option value="team">Team Collaboration</option>
           </select>
 
           {/* Grade Eligibility */}
           <select
             value={selectedGrade}
             onChange={e => setSelectedGrade(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-activia-elevated/70 border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+            className="px-3 py-2 rounded-lg bg-white border border-app-border text-xs text-app-text focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
           >
-            <option value="all">Eligible Grade: All</option>
+            <option value="all">Grade: All</option>
             <option value="Grade 9">Grade 9</option>
             <option value="Grade 10">Grade 10</option>
             <option value="Grade 11">Grade 11</option>
             <option value="Grade 12">Grade 12</option>
           </select>
 
-          {/* Enrollment status */}
+          {/* Participation Filter */}
           <select
             value={selectedStatus}
             onChange={e => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-activia-elevated/70 border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+            className="px-3 py-2 rounded-lg bg-white border border-app-border text-xs text-app-text focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
           >
-            <option value="all">Status: All Opportunities</option>
+            <option value="all">Filter: All Activities</option>
             <option value="registered">My Registered Events</option>
-            <option value="bookmarked">Bookmarked Events</option>
+            <option value="bookmarked">Bookmarked</option>
           </select>
         </div>
       </div>
 
       {/* Activity Cards Grid */}
       {filteredActivities.length === 0 ? (
-        <div className="p-12 text-center rounded-3xl bg-activia-surface/50 border border-activia-border/50">
-          <Compass className="w-10 h-10 text-activia-muted mx-auto mb-3 opacity-60" />
-          <h3 className="text-base font-bold text-white font-display">No Matching Activities Found</h3>
-          <p className="text-xs text-activia-muted mt-1 max-w-md mx-auto">
-            Try adjusting your search query, clearing grade filters, or browsing other activity sectors.
+        <div className="p-16 text-center rounded-xl bg-white border border-app-border shadow-xs">
+          <AlertCircle className="w-10 h-10 text-app-muted mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-app-text">No activities match your filters</h3>
+          <p className="text-xs text-app-muted mt-1 max-w-sm mx-auto">
+            Try broadening your search criteria or resetting filters to view all scheduled events.
           </p>
+          <button
+            onClick={() => {
+              setSelectedCategory('all');
+              setSelectedFormat('all');
+              setSelectedGrade('all');
+              setSelectedStatus('all');
+              setSearchQuery('');
+            }}
+            className="mt-4 px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition-colors inline-block"
+          >
+            Reset All Filters
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredActivities.map(act => {
-            const reg = registrations.find(r => r.activityId === act.id && r.studentId === persona.id);
+            const isRegistered = registrations.some(
+              r => r.activityId === act.id && r.studentId === persona.id && r.status !== 'cancelled'
+            );
             const isBookmarked = bookmarkedIds.includes(act.id);
-            const isFull = act.totalSeats ? act.seatsTaken >= act.totalSeats : false;
+            const seatsRemaining = act.totalSeats ? Math.max(0, act.totalSeats - act.seatsTaken) : null;
 
             return (
               <div
                 key={act.id}
                 onClick={() => onSelectActivity(act)}
-                className="group rounded-3xl bg-activia-surface/90 border border-activia-border/70 hover:border-activia-blue/60 hover:shadow-glow-blue transition-all duration-300 flex flex-col overflow-hidden cursor-pointer shadow-lg"
+                className="bg-white rounded-xl border border-app-border hover:border-indigo-300 shadow-xs hover:shadow-card-hover transition-all flex flex-col justify-between cursor-pointer group"
               >
-                {/* Poster Image */}
-                <div className="h-44 w-full relative overflow-hidden bg-activia-dark">
-                  <img
-                    src={act.posterUrl}
-                    alt={act.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-activia-surface via-transparent to-black/40" />
-
-                  {/* Top Badges */}
-                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-black/60 backdrop-blur-md text-white border border-white/10">
-                      {act.categoryName}
+                <div className="p-5 space-y-3">
+                  {/* Category & Status Bar */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                      {act.categoryName || 'Activity'}
                     </span>
-                    <button
-                      onClick={e => toggleBookmark(act.id, e)}
-                      className={`p-1.5 rounded-full backdrop-blur-md transition-colors ${
-                        isBookmarked ? 'bg-amber-500 text-white' : 'bg-black/50 text-white/70 hover:text-white'
-                      }`}
-                      title={isBookmarked ? 'Remove Bookmark' : 'Bookmark Opportunity'}
-                    >
-                      <Bookmark className="w-3.5 h-3.5 fill-current" />
-                    </button>
+
+                    <div className="flex items-center gap-1.5">
+                      {isRegistered && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Enrolled
+                        </span>
+                      )}
+                      <button
+                        onClick={e => toggleBookmark(act.id, e)}
+                        className={`p-1.5 rounded-md transition-colors ${
+                          isBookmarked ? 'text-amber-500 bg-amber-50' : 'text-app-muted hover:text-app-text hover:bg-app-secondary'
+                        }`}
+                        title={isBookmarked ? 'Remove bookmark' : 'Bookmark event'}
+                      >
+                        <Bookmark className="w-3.5 h-3.5" fill={isBookmarked ? 'currentColor' : 'none'} />
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Format & Capacity badge */}
-                  <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-activia-blue/80 backdrop-blur-md text-white">
-                      {act.participationFormat}
-                    </span>
-                    {act.isCompetition && (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-500/80 backdrop-blur-md text-white">
-                        Competition
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                  {/* Title & Description */}
                   <div>
-                    <h3 className="text-base font-bold text-white group-hover:text-activia-blue transition-colors line-clamp-1 font-display">
+                    <h3 className="text-base font-bold text-app-text group-hover:text-indigo-600 transition-colors line-clamp-1">
                       {act.title}
                     </h3>
-                    <p className="text-xs text-activia-muted mt-1 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-app-muted leading-relaxed line-clamp-2 mt-1.5">
                       {act.description}
                     </p>
                   </div>
 
-                  {/* Metadata Specs */}
-                  <div className="space-y-2 pt-2 border-t border-white/5 text-xs text-activia-muted">
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-white/80">
-                        <Calendar className="w-3.5 h-3.5 text-activia-cyan" />
-                        {act.date}
-                      </span>
-                      <span className="flex items-center gap-1.5 text-white/80">
-                        <Clock className="w-3.5 h-3.5 text-activia-purple" />
-                        {act.startTime}
-                      </span>
+                  {/* Date, Time & Location Specs */}
+                  <div className="pt-2 border-t border-app-border-subtle space-y-1.5 text-xs text-app-muted">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-3.5 h-3.5 text-app-subtle flex-shrink-0" />
+                      <span>{act.date} • {act.startTime || '09:00'} - {act.endTime || '11:00'}</span>
                     </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-white/80 truncate max-w-[180px]">
-                        <MapPin className="w-3.5 h-3.5 text-activia-amber flex-shrink-0" />
-                        {act.venue}
-                      </span>
-                      <span className="text-[11px] text-activia-muted">
-                        {act.cost}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-app-subtle flex-shrink-0" />
+                      <span className="truncate">{act.venue}</span>
                     </div>
-
-                    {/* Capacity Progress Bar */}
-                    {act.totalSeats && (
-                      <div className="pt-1">
-                        <div className="flex items-center justify-between text-[10px] mb-1">
-                          <span>Seats: {act.seatsTaken}/{act.totalSeats}</span>
-                          <span className={isFull ? 'text-activia-rose font-bold' : 'text-activia-mint'}>
-                            {isFull ? 'Waitlist Mode' : `${act.totalSeats - act.seatsTaken} Available`}
-                          </span>
-                        </div>
-                        <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${
-                              isFull ? 'bg-activia-rose' : 'bg-activia-blue'
-                            }`}
-                            style={{ width: `${Math.min(100, (act.seatsTaken / act.totalSeats) * 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <Users className="w-3.5 h-3.5 text-app-subtle flex-shrink-0" />
+                      <span className="capitalize">{act.participationFormat} • Organizer: {act.organizer}</span>
+                    </div>
                   </div>
+                </div>
 
-                  {/* Registration state or CTA */}
-                  <div className="pt-2 flex items-center justify-between">
-                    {reg ? (
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-activia-mint/20 text-activia-mint border border-activia-mint/30 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        {reg.status.replace(/_/g, ' ').toUpperCase()}
-                      </span>
-                    ) : (
-                      <span className="text-[11px] text-activia-muted">
-                        Deadline: {act.registrationDeadline}
-                      </span>
-                    )}
-
-                    <span className="text-xs text-activia-blue group-hover:text-activia-cyan font-semibold flex items-center gap-1 transition-colors">
-                      View Details <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                {/* Footer Action Bar */}
+                <div className="px-5 py-3.5 bg-app-secondary/50 border-t border-app-border flex items-center justify-between rounded-b-xl">
+                  {seatsRemaining !== null ? (
+                    <span className="text-[11px] font-medium text-app-muted">
+                      <span className="font-bold text-app-text">{seatsRemaining}</span> seats open
                     </span>
-                  </div>
+                  ) : (
+                    <span className="text-[11px] font-medium text-emerald-700">Open Admission</span>
+                  )}
+
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 group-hover:text-indigo-800 transition-colors">
+                    <span>View & Apply</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
                 </div>
               </div>
             );

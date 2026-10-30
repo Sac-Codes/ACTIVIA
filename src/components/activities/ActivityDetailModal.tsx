@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import confetti from 'canvas-confetti';
 import {
   X,
   Calendar,
@@ -7,17 +6,14 @@ import {
   MapPin,
   Users,
   Trophy,
-  ShieldCheck,
   CheckCircle2,
   AlertCircle,
   FileText,
-  HelpCircle,
   ChevronRight,
   Send,
   User,
   Sparkles,
-  Lock,
-  Bookmark
+  Download
 } from 'lucide-react';
 import { Activity, Registration, UserPersona } from '../../types';
 
@@ -51,8 +47,8 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
 }) => {
   if (!activity) return null;
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'rules' | 'judging' | 'register'>('overview');
-  const [format, setFormat] = useState<'individual' | 'team'>(activity.participationFormat);
+  const [activeTab, setActiveTab] = useState<'overview' | 'rules' | 'register'>('overview');
+  const [format, setFormat] = useState<'individual' | 'team'>(activity.participationFormat || 'individual');
   const [teamName, setTeamName] = useState('');
   const [teamMembersInput, setTeamMembersInput] = useState(`${persona.name} (Lead)`);
   const [projectTitle, setProjectTitle] = useState('');
@@ -63,7 +59,9 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
   // Eligibility check
-  const isEligibleGrade = persona.grade ? activity.eligibleGrades.includes(persona.grade) : true;
+  const isEligibleGrade = persona.grade && activity.eligibleGrades && activity.eligibleGrades.length > 0
+    ? activity.eligibleGrades.includes(persona.grade)
+    : true;
   const isFull = activity.totalSeats ? activity.seatsTaken >= activity.totalSeats : false;
 
   const handleRegister = (e: React.FormEvent) => {
@@ -80,13 +78,13 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
       return;
     }
 
-    if (!motivation.trim() || motivation.trim().length < 10) {
-      setFormError('Please enter a short statement of motivation or project interest (min 10 characters).');
+    if (!motivation.trim() || motivation.trim().length < 5) {
+      setFormError('Please enter a brief statement of interest or motivation.');
       return;
     }
 
     if (!parentConsent) {
-      setFormError('Parental or guardian acknowledgment is required for after-school activities.');
+      setFormError('Parental or guardian acknowledgment is required for co-curricular participation.');
       return;
     }
 
@@ -99,9 +97,9 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
       activityId: activity.id,
       studentId: persona.id,
       studentName: persona.name,
-      studentGrade: persona.grade || 'Grade 11',
-      studentSection: persona.section || 'Section A',
-      studentHouse: persona.house || 'Newton House',
+      studentGrade: persona.grade || 'Grade 10',
+      studentSection: persona.section || 'A',
+      studentHouse: persona.house || 'Phoenix',
       format,
       teamName: format === 'team' ? teamName.trim() : undefined,
       teamMembers: members,
@@ -112,404 +110,334 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
 
     setSubmitting(false);
 
-    if (result.success) {
-      setFormSuccess('Registration submitted successfully! Your teacher and activity desk have been notified.');
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
+    if (!result.success) {
+      setFormError(result.error || 'Failed to submit registration. Please try again.');
     } else {
-      setFormError(result.error || 'Failed to submit registration. Please verify details.');
+      setFormSuccess('Registration successfully submitted! Your application has been logged in the school database.');
     }
   };
 
+  const downloadIcs = () => {
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//ACTIVIA//School Activity Universe//EN',
+      'BEGIN:VEVENT',
+      `SUMMARY:${activity.title}`,
+      `DESCRIPTION:${activity.description.replace(/\n/g, ' ')}`,
+      `LOCATION:${activity.venue}`,
+      `DTSTART:${activity.date.replace(/-/g, '')}T${(activity.startTime || '09:00').replace(':', '')}00`,
+      `DTEND:${activity.date.replace(/-/g, '')}T${(activity.endTime || '10:00').replace(':', '')}00`,
+      'STATUS:CONFIRMED',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.setAttribute('download', `${activity.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-3xl bg-activia-surface border border-activia-border rounded-3xl shadow-2xl overflow-hidden flex flex-col my-8 animate-in fade-in zoom-in-95 duration-200">
-        {/* Modal Banner */}
-        <div className="relative h-48 w-full bg-activia-dark overflow-hidden flex-shrink-0">
-          <img
-            src={activity.posterUrl}
-            alt={activity.title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-activia-surface via-activia-surface/40 to-black/60" />
-
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-full bg-black/60 text-white hover:bg-black/90 transition-colors z-10"
-          >
-            <X className="w-4 h-4" />
-          </button>
-
-          {/* Category Tag & Format */}
-          <div className="absolute top-4 left-4 flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-activia-blue/90 text-white backdrop-blur-md">
-              {activity.categoryName}
-            </span>
-            <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-black/60 text-white backdrop-blur-md border border-white/10">
-              {activity.participationFormat}
-            </span>
-          </div>
-
-          <div className="absolute bottom-4 left-6 right-6">
-            <h2 className="text-xl sm:text-2xl font-bold font-display text-white drop-shadow-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in">
+      <div className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-xl border border-app-border shadow-dropdown flex flex-col overflow-hidden">
+        {/* Modal Header */}
+        <div className="p-6 border-b border-app-border flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                {activity.categoryName || 'Activity'}
+              </span>
+              <span className="text-xs text-app-subtle capitalize">
+                {activity.participationFormat} Participation
+              </span>
+            </div>
+            <h2 className="text-lg sm:text-xl font-bold font-display text-app-text">
               {activity.title}
             </h2>
-            <p className="text-xs text-activia-muted mt-0.5">
-              Organized by {activity.organizer} • Mentored by {activity.coordinatingTeacher}
+            <p className="text-xs text-app-muted">
+              Organized by {activity.organizer}
             </p>
           </div>
+
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-app-muted hover:text-app-text hover:bg-app-secondary border border-transparent hover:border-app-border transition-colors flex-shrink-0"
+            aria-label="Close modal"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-1 px-6 pt-4 border-b border-activia-border bg-activia-surface">
+        <div className="flex items-center gap-1 px-6 pt-2 border-b border-app-border bg-app-secondary/50">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2.5 text-xs font-semibold rounded-t-xl transition-all border-b-2 ${
+            className={`px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-colors border-b-2 ${
               activeTab === 'overview'
-                ? 'text-activia-blue border-activia-blue bg-white/5'
-                : 'text-activia-muted hover:text-white border-transparent'
+                ? 'text-indigo-600 border-indigo-600 bg-white'
+                : 'text-app-muted hover:text-app-text border-transparent'
             }`}
           >
             Overview & Schedule
           </button>
           <button
             onClick={() => setActiveTab('rules')}
-            className={`px-4 py-2.5 text-xs font-semibold rounded-t-xl transition-all border-b-2 ${
+            className={`px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-colors border-b-2 ${
               activeTab === 'rules'
-                ? 'text-activia-blue border-activia-blue bg-white/5'
-                : 'text-activia-muted hover:text-white border-transparent'
+                ? 'text-indigo-600 border-indigo-600 bg-white'
+                : 'text-app-muted hover:text-app-text border-transparent'
             }`}
           >
-            Rules & Requirements
+            Rules & Eligibility
           </button>
-          {activity.judgingCriteria && activity.judgingCriteria.length > 0 && (
-            <button
-              onClick={() => setActiveTab('judging')}
-              className={`px-4 py-2.5 text-xs font-semibold rounded-t-xl transition-all border-b-2 ${
-                activeTab === 'judging'
-                  ? 'text-activia-blue border-activia-blue bg-white/5'
-                  : 'text-activia-muted hover:text-white border-transparent'
-              }`}
-            >
-              Judging Criteria
-            </button>
-          )}
           <button
             onClick={() => setActiveTab('register')}
-            className={`ml-auto px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${
+            className={`ml-auto px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
               activeTab === 'register'
-                ? 'bg-activia-blue text-white shadow-glow-blue'
-                : 'bg-activia-blue/20 text-activia-blue hover:bg-activia-blue/30 border border-activia-blue/40'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            {existingRegistration ? 'My Registration Status' : 'Register Now'}
+            <FileText className="w-3.5 h-3.5" />
+            {existingRegistration ? 'Registration Status' : 'Register Now'}
           </button>
         </div>
 
-        {/* Tab Body */}
-        <div className="p-6 overflow-y-auto max-h-[55vh] space-y-6">
+        {/* Modal Scrollable Body */}
+        <div className="p-6 overflow-y-auto space-y-5 flex-1 text-xs text-app-text">
           {activeTab === 'overview' && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* Key Specs Card */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-activia-elevated/70 border border-activia-border text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-lg bg-app-secondary border border-app-border">
                 <div>
-                  <span className="text-activia-muted flex items-center gap-1 mb-1">
-                    <Calendar className="w-3.5 h-3.5 text-activia-cyan" /> Event Date
+                  <span className="text-app-muted flex items-center gap-1 mb-1 font-medium">
+                    <Calendar className="w-3.5 h-3.5 text-indigo-600" /> Event Date
                   </span>
-                  <p className="font-semibold text-white">{activity.date}</p>
+                  <p className="font-semibold text-app-text">{activity.date}</p>
                 </div>
                 <div>
-                  <span className="text-activia-muted flex items-center gap-1 mb-1">
-                    <Clock className="w-3.5 h-3.5 text-activia-purple" /> Time Slot
+                  <span className="text-app-muted flex items-center gap-1 mb-1 font-medium">
+                    <Clock className="w-3.5 h-3.5 text-teal-600" /> Time
                   </span>
-                  <p className="font-semibold text-white">{activity.startTime} - {activity.endTime}</p>
+                  <p className="font-semibold text-app-text">{activity.startTime || '09:00'} - {activity.endTime || '11:00'}</p>
                 </div>
                 <div>
-                  <span className="text-activia-muted flex items-center gap-1 mb-1">
-                    <MapPin className="w-3.5 h-3.5 text-activia-amber" /> Venue
+                  <span className="text-app-muted flex items-center gap-1 mb-1 font-medium">
+                    <MapPin className="w-3.5 h-3.5 text-amber-600" /> Venue
                   </span>
-                  <p className="font-semibold text-white">{activity.venue}</p>
+                  <p className="font-semibold text-app-text truncate">{activity.venue}</p>
                 </div>
                 <div>
-                  <span className="text-activia-muted flex items-center gap-1 mb-1">
-                    <Users className="w-3.5 h-3.5 text-activia-mint" /> Capacity
+                  <span className="text-app-muted flex items-center gap-1 mb-1 font-medium">
+                    <Users className="w-3.5 h-3.5 text-emerald-600" /> Seats
                   </span>
-                  <p className="font-semibold text-white">
-                    {activity.totalSeats ? `${activity.seatsTaken}/${activity.totalSeats} seats` : 'Open'}
+                  <p className="font-semibold text-app-text">
+                    {activity.totalSeats ? `${activity.seatsTaken} / ${activity.totalSeats}` : 'Open Admission'}
                   </p>
                 </div>
               </div>
 
-              {/* Detailed Description */}
-              <div>
-                <h4 className="text-sm font-bold text-white mb-2">About This Opportunity</h4>
-                <p className="text-xs text-activia-muted leading-relaxed whitespace-pre-line">
-                  {activity.fullOverview}
+              {/* Description */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-bold text-app-text">Activity Overview</h4>
+                <p className="text-app-muted leading-relaxed whitespace-pre-line">
+                  {activity.description}
                 </p>
               </div>
 
-              {/* Eligibility & Deadlines */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10">
-                  <h5 className="text-xs font-bold text-white mb-2 flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-activia-blue" /> Eligibility Criteria
-                  </h5>
-                  <ul className="text-xs text-activia-muted space-y-1">
-                    <li>• Eligible Grades: <strong className="text-white">{activity.eligibleGrades.join(', ')}</strong></li>
-                    {activity.eligibleStreams && (
-                      <li>• Eligible Streams: <strong className="text-white">{activity.eligibleStreams.join(', ')}</strong></li>
-                    )}
-                    <li>• Format: <strong className="text-white">{activity.participationFormat === 'team' ? `Team (${activity.minTeamSize || 2}-${activity.maxTeamSize || 4} members)` : 'Individual'}</strong></li>
-                    <li>• Cost: <strong className="text-activia-mint">{activity.cost}</strong></li>
-                  </ul>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10">
-                  <h5 className="text-xs font-bold text-white mb-2 flex items-center gap-1.5">
-                    <Clock className="w-4 h-4 text-activia-amber" /> Key Deadlines
-                  </h5>
-                  <ul className="text-xs text-activia-muted space-y-1">
-                    <li>• Registration Deadline: <strong className="text-white">{activity.registrationDeadline}</strong></li>
-                    {activity.submissionDeadline && (
-                      <li>• Project Submission Deadline: <strong className="text-white">{activity.submissionDeadline}</strong></li>
-                    )}
-                    <li>• Competition Day: <strong className="text-white">{activity.date}</strong></li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* FAQs */}
-              {activity.faqs && activity.faqs.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-bold text-white mb-3">Frequently Asked Questions</h4>
-                  <div className="space-y-2">
-                    {activity.faqs.map((faq, i) => (
-                      <div key={i} className="p-3.5 rounded-xl bg-activia-elevated/50 border border-white/5">
-                        <p className="text-xs font-semibold text-white flex items-center gap-2">
-                          <HelpCircle className="w-3.5 h-3.5 text-activia-cyan flex-shrink-0" />
-                          {faq.question}
-                        </p>
-                        <p className="text-xs text-activia-muted mt-1 pl-5 leading-relaxed">{faq.answer}</p>
-                      </div>
-                    ))}
-                  </div>
+              {/* Participation Instructions */}
+              {activity.participation_instructions && (
+                <div className="p-4 rounded-lg bg-indigo-50/60 border border-indigo-100 text-indigo-900 space-y-1">
+                  <h5 className="font-bold">Special Instructions for Participants:</h5>
+                  <p className="text-indigo-800 leading-relaxed">{activity.participation_instructions}</p>
                 </div>
               )}
+
+              {/* Calendar Export */}
+              <div className="pt-2 flex items-center justify-between border-t border-app-border">
+                <span className="text-app-muted">Sync this activity to your personal calendar:</span>
+                <button
+                  onClick={downloadIcs}
+                  className="px-3 py-1.5 rounded-lg border border-app-border hover:bg-app-secondary font-semibold text-app-text transition-colors flex items-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Download .ICS File</span>
+                </button>
+              </div>
             </div>
           )}
 
           {activeTab === 'rules' && (
             <div className="space-y-4">
-              <h4 className="text-sm font-bold text-white">Official Regulations & Compliance</h4>
-              <p className="text-xs text-activia-muted">
-                All participants must abide by school extracurricular guidelines and specific event safety standards.
-              </p>
-              <div className="space-y-2.5">
-                {activity.rules.map((rule, idx) => (
-                  <div key={idx} className="p-3 rounded-xl bg-activia-elevated/60 border border-white/5 flex items-start gap-3">
-                    <span className="w-5 h-5 rounded-full bg-activia-blue/20 text-activia-blue text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
-                      {idx + 1}
-                    </span>
-                    <p className="text-xs text-activia-text leading-relaxed">{rule}</p>
+              <div className="p-4 rounded-lg bg-app-secondary border border-app-border space-y-2">
+                <h4 className="text-sm font-bold text-app-text">Eligibility Requirements</h4>
+                <div className="grid grid-cols-2 gap-3 text-app-muted">
+                  <div>
+                    <span className="block font-medium">Eligible Grades:</span>
+                    <strong className="text-app-text">{activity.eligibleGrades?.join(', ') || 'All Grades'}</strong>
                   </div>
-                ))}
+                  <div>
+                    <span className="block font-medium">Format:</span>
+                    <strong className="text-app-text capitalize">{activity.participationFormat || 'Individual'}</strong>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
 
-          {activeTab === 'judging' && activity.judgingCriteria && (
-            <div className="space-y-4">
-              <h4 className="text-sm font-bold text-white">Evaluation Matrix & Criteria</h4>
-              <div className="space-y-3">
-                {activity.judgingCriteria.map((c, i) => (
-                  <div key={i} className="p-4 rounded-xl bg-activia-elevated/70 border border-white/5">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-white">{c.title}</span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400">
-                        {c.weight}% Weight
-                      </span>
-                    </div>
-                    <p className="text-xs text-activia-muted mt-1 leading-relaxed">{c.description}</p>
-                  </div>
-                ))}
+              <div className="space-y-2">
+                <h4 className="text-sm font-bold text-app-text">Participation Code & Regulations</h4>
+                <ul className="space-y-2 text-app-muted list-disc list-inside leading-relaxed">
+                  <li>Punctual attendance at all scheduled briefing sessions and preliminary rounds is mandatory.</li>
+                  <li>Students must wear official school uniform or designated athletic attire during competition hours.</li>
+                  <li>Parent or guardian acknowledgment must be on file prior to the activity start date.</li>
+                  <li>All laboratory, stage, and workshop safety guidelines must be strictly obeyed.</li>
+                </ul>
               </div>
             </div>
           )}
 
           {activeTab === 'register' && (
             <div className="space-y-4">
-              {/* Existing Registration State */}
               {existingRegistration ? (
-                <div className="p-6 rounded-2xl bg-activia-elevated border border-activia-blue/40 text-center space-y-3">
-                  <div className="w-12 h-12 rounded-full bg-activia-mint/20 text-activia-mint flex items-center justify-center mx-auto">
+                <div className="p-6 rounded-lg bg-emerald-50/50 border border-emerald-200 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
-                  <h4 className="text-base font-bold text-white">Active Registration Recorded</h4>
-                  <p className="text-xs text-activia-muted max-w-md mx-auto">
-                    You registered on {new Date(existingRegistration.submittedAt).toLocaleDateString()}. Current state:{' '}
-                    <strong className="text-activia-mint uppercase">{existingRegistration.status.replace(/_/g, ' ')}</strong>
+                  <h4 className="text-base font-bold text-app-text">Active Application on Record</h4>
+                  <p className="text-app-muted max-w-sm mx-auto">
+                    You submitted an application for this activity on {new Date(existingRegistration.submittedAt).toLocaleDateString()}.
                   </p>
+                  <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 uppercase">
+                    Status: {existingRegistration.status.replace(/_/g, ' ')}
+                  </div>
                   {existingRegistration.teamName && (
-                    <div className="p-3 rounded-xl bg-white/5 max-w-sm mx-auto text-xs text-left">
-                      <p className="text-white font-semibold">Team: {existingRegistration.teamName}</p>
-                      <p className="text-activia-muted mt-0.5">Members: {existingRegistration.teamMembers?.join(', ')}</p>
-                    </div>
-                  )}
-                  {existingRegistration.reviewNotes && (
-                    <p className="text-xs text-activia-cyan italic">
-                      Review Note: &ldquo;{existingRegistration.reviewNotes}&rdquo;
-                    </p>
+                    <p className="text-app-muted font-medium">Registered Team: {existingRegistration.teamName}</p>
                   )}
                 </div>
               ) : (
-                /* Registration Form */
                 <form onSubmit={handleRegister} className="space-y-4">
-                  {/* Eligibility Alert if Ineligible */}
+                  {/* Warnings */}
                   {!isEligibleGrade && (
-                    <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-2.5 text-xs text-rose-300">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-activia-rose" />
-                      <div>
-                        <strong className="font-semibold">Grade Eligibility Notice:</strong> Your profile ({persona.grade}) is not in the eligible grade brackets ({activity.eligibleGrades.join(', ')}). Registration cannot proceed.
-                      </div>
+                    <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span>Notice: This activity is intended for {activity.eligibleGrades.join(', ')}.</span>
                     </div>
                   )}
 
-                  {/* Waitlist Warning if Full */}
                   {isFull && (
-                    <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2.5 text-xs text-amber-300">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-400" />
-                      <div>
-                        <strong className="font-semibold">Capacity Reached:</strong> Total capacity of {activity.totalSeats} seats is currently filled. Submitting now will place you on the prioritized waitlist.
-                      </div>
+                    <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span>Capacity reached ({activity.totalSeats} seats). Submitting will place you on the waitlist.</span>
                     </div>
                   )}
 
-                  {/* Error & Success Messages */}
                   {formError && (
-                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-400">
-                      {formError}
-                    </div>
-                  )}
-                  {formSuccess && (
-                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-400 flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                      {formSuccess}
+                    <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span>{formError}</span>
                     </div>
                   )}
 
-                  {/* Student Identity Auto-Filled */}
-                  <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-activia-muted grid grid-cols-2 gap-2">
-                    <div>
-                      <span>Student:</span> <strong className="text-white">{persona.name} ({persona.studentId})</strong>
+                  {formSuccess && (
+                    <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                      <span>{formSuccess}</span>
                     </div>
-                    <div>
-                      <span>Class / Section:</span> <strong className="text-white">{persona.grade} • {persona.section}</strong>
-                    </div>
-                    <div>
-                      <span>Stream:</span> <strong className="text-white">{persona.stream}</strong>
-                    </div>
-                    <div>
-                      <span>House:</span> <strong className="text-white">{persona.house}</strong>
-                    </div>
+                  )}
+
+                  {/* Student Pre-Filled Info */}
+                  <div className="p-3.5 rounded-lg bg-app-secondary border border-app-border grid grid-cols-2 gap-2 text-app-muted">
+                    <div>Student: <strong className="text-app-text">{persona.name}</strong></div>
+                    <div>Grade: <strong className="text-app-text">{persona.grade}</strong></div>
+                    <div>House: <strong className="text-app-text">{persona.house} House</strong></div>
+                    <div>Email: <strong className="text-app-text">{persona.email}</strong></div>
                   </div>
 
-                  {/* Format Selection if Allowed */}
+                  {/* Team Inputs if Team Event */}
                   {activity.participationFormat === 'team' && (
-                    <div className="space-y-3 p-4 rounded-xl bg-activia-elevated/60 border border-white/5">
-                      <h5 className="text-xs font-bold text-white">Team Details</h5>
+                    <div className="space-y-3 p-3.5 rounded-lg bg-app-secondary border border-app-border">
+                      <h5 className="font-bold text-app-text">Team Details</h5>
                       <div>
-                        <label className="text-[11px] text-activia-muted block mb-1">Squad or Team Name *</label>
+                        <label className="text-app-muted block mb-1 font-medium">Team or Squad Name *</label>
                         <input
                           type="text"
                           required
                           placeholder="e.g. AstroBots Alpha"
                           value={teamName}
                           onChange={e => setTeamName(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-activia-surface border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+                          className="w-full px-3 py-2 rounded-lg bg-white border border-app-border text-xs text-app-text focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] text-activia-muted block mb-1">Proposed Team Members (Comma separated)</label>
+                        <label className="text-app-muted block mb-1 font-medium">Team Members (Comma separated)</label>
                         <input
                           type="text"
                           value={teamMembersInput}
                           onChange={e => setTeamMembersInput(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-activia-surface border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+                          className="w-full px-3 py-2 rounded-lg bg-white border border-app-border text-xs text-app-text focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
                         />
                       </div>
                     </div>
                   )}
 
-                  {/* Project Title / Idea */}
-                  {activity.isCompetition && (
-                    <div>
-                      <label className="text-[11px] text-activia-muted block mb-1">Proposed Project Title / Topic (Optional)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Autonomous Maze SLAM Rover with Edge AI"
-                        value={projectTitle}
-                        onChange={e => setProjectTitle(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-activia-surface border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
-                      />
-                    </div>
-                  )}
-
-                  {/* Motivation Statement */}
+                  {/* Motivation */}
                   <div>
-                    <label className="text-[11px] text-activia-muted block mb-1">
-                      Statement of Motivation / Prior Experience *
+                    <label className="text-app-muted block mb-1 font-medium">
+                      Statement of Interest / Motivation *
                     </label>
                     <textarea
                       required
-                      rows={3}
-                      placeholder="Explain why you wish to participate and what relevant experience or interests you bring..."
+                      placeholder="Why do you want to participate in this activity? What do you hope to learn or contribute?"
                       value={motivation}
                       onChange={e => setMotivation(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-activia-surface border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue resize-none"
+                      rows={3}
+                      className="w-full p-3 rounded-lg bg-white border border-app-border text-xs text-app-text focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
                     />
                   </div>
 
-                  {/* Consent & Agreements */}
-                  <div className="pt-2">
-                    <label className="flex items-start gap-2 cursor-pointer text-xs text-activia-muted">
-                      <input
-                        type="checkbox"
-                        checked={parentConsent}
-                        onChange={e => setParentConsent(e.target.checked)}
-                        className="mt-0.5 rounded border-activia-border bg-activia-surface text-activia-blue focus:ring-0"
-                      />
-                      <span>
-                        I acknowledge that I have verified parent/guardian consent for school activity commitments, and agree to attend all designated rehearsals/competition rounds.
-                      </span>
+                  {/* Parent Consent */}
+                  <div className="flex items-start gap-2 pt-1">
+                    <input
+                      type="checkbox"
+                      id="parent_consent"
+                      checked={parentConsent}
+                      onChange={e => setParentConsent(e.target.checked)}
+                      className="mt-0.5 rounded border-app-border text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <label htmlFor="parent_consent" className="text-app-muted cursor-pointer leading-relaxed">
+                      I confirm that my parent or legal guardian has reviewed the schedule, venue, and safety terms of this activity and consents to my participation.
                     </label>
                   </div>
 
-                  {/* Submit Button */}
-                  <div className="pt-3">
-                    <button
-                      type="submit"
-                      disabled={submitting || !isEligibleGrade || !!formSuccess}
-                      className="w-full py-3 rounded-xl bg-gradient-to-r from-activia-blue to-activia-purple text-white text-xs font-bold shadow-lg shadow-activia-blue/30 hover:shadow-glow-blue transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {submitting ? (
-                        <span>Submitting Application...</span>
-                      ) : (
-                        <>
-                          <Send className="w-3.5 h-3.5" />
-                          {isFull ? 'Submit for Prioritized Waitlist' : 'Submit Official Registration'}
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    disabled={submitting || formSuccess !== null}
+                    className="w-full py-2.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold text-xs shadow-xs transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>{submitting ? 'Submitting Application...' : 'Submit Official Application'}</span>
+                  </button>
                 </form>
               )}
             </div>
           )}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="px-6 py-4 bg-app-secondary border-t border-app-border flex items-center justify-between">
+          <span className="text-[11px] text-app-subtle">
+            ACTIVIA Co-Curricular Management Engine
+          </span>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg bg-white border border-app-border text-app-text hover:bg-app-secondary font-semibold text-xs transition-colors shadow-xs"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>

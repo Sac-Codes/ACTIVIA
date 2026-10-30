@@ -8,7 +8,6 @@ import {
   Plus,
   Calendar,
   MapPin,
-  Sparkles,
   CheckCircle2,
   AlertCircle,
   FileText,
@@ -43,7 +42,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   onCreateActivity,
   onNavigate,
 }) => {
-  const [activeTab, setActiveTab] = useState<'approvals' | 'create_activity' | 'teams' | 'attendance'>('approvals');
+  const [activeTab, setActiveTab] = useState<'approvals' | 'create_activity' | 'teams'>('approvals');
   const [approvalNotes, setApprovalNotes] = useState<Record<string, string>>({});
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
@@ -59,14 +58,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [newFormat, setNewFormat] = useState<'individual' | 'team'>('individual');
   const [newEligibleGrades, setNewEligibleGrades] = useState(['Grade 10', 'Grade 11', 'Grade 12']);
 
-  // Attendance simulator state
-  const [attendanceRecords, setAttendanceRecords] = useState<Record<string, boolean>>({
-    'reg-001': true,
-    'reg-003': true,
-    'reg-005': false,
-  });
-
-  const pendingRegistrations = registrations.filter(r => r.status === 'pending_teacher_approval');
+  const pendingRegistrations = registrations.filter(
+    r => r.status === 'pending_teacher_approval' || r.status === 'submitted'
+  );
+  const confirmedRegistrations = registrations.filter(
+    r => r.status === 'confirmed'
+  );
 
   const handleApprove = (regId: string) => {
     const note = approvalNotes[regId] || 'Approved by coordinating faculty mentor.';
@@ -76,9 +73,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   };
 
   const handleReject = (regId: string) => {
-    const note = approvalNotes[regId] || 'Did not meet prerequisites or team criteria.';
+    const note = approvalNotes[regId] || 'Prerequisites or team requirements not met.';
     onUpdateRegistrationStatus(regId, 'rejected', note);
-    setActionMessage('Registration rejected with notes sent to student.');
+    setActionMessage('Registration declined.');
     setTimeout(() => setActionMessage(null), 3000);
   };
 
@@ -91,205 +88,206 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     onCreateActivity({
       title: newTitle.trim(),
       category: newCategory,
-      categoryName: categoryObj?.name || 'STEM, Robotics & Coding',
+      categoryName: categoryObj?.name || 'Science & Technology',
       description: newDesc.trim(),
-      fullOverview: newDesc.trim() + ' Organized under faculty guidance with verified certification.',
-      posterUrl: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=800&auto=format&fit=crop&q=80',
+      fullOverview: newDesc.trim(),
+      posterUrl: '',
       date: newDate,
       startTime: newStartTime,
       endTime: newEndTime,
-      registrationDeadline: newDate,
       venue: newVenue,
-      venueCapacity: parseInt(newCapacity) || 50,
-      organizer: `${categoryObj?.name || 'Department'} Cell`,
+      organizer: persona.name,
       coordinatingTeacher: persona.name,
       status: 'published',
-      isFeatured: false,
-      isCompetition: true,
+      isFeatured: true,
+      isCompetition: newFormat === 'team',
       participationFormat: newFormat,
-      totalSeats: parseInt(newCapacity) || 50,
+      totalSeats: parseInt(newCapacity, 10) || 50,
       cost: 'Free',
       eligibleGrades: newEligibleGrades,
-      rules: ['Student ID badge required.', 'Punctual attendance mandatory for certificate.'],
+      rules: ['Adhere to lab safety codes', 'Complete required milestone submissions'],
     });
 
+    setActionMessage(`Activity "${newTitle}" published successfully!`);
     setNewTitle('');
     setNewDesc('');
-    setActionMessage(`Activity "${newTitle}" published successfully!`);
-    setTimeout(() => setActionMessage(null), 4000);
+    setTimeout(() => setActionMessage(null), 3000);
+    setActiveTab('approvals');
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 pb-12">
+    <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-activia-purple flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            Faculty & Mentor Control Panel
-          </span>
-          <h2 className="text-2xl font-bold font-display text-white mt-0.5">
-            Teacher & Mentor Workspace
+          <h2 className="text-xl sm:text-2xl font-bold font-display text-app-text">
+            Faculty & Mentor Workspace
           </h2>
-          <p className="text-xs text-activia-muted mt-1">
-            Logged in as <strong className="text-white">{persona.name}</strong> • {persona.designation}
+          <p className="text-xs sm:text-sm text-app-muted mt-1">
+            Logged in as <strong>{persona.name}</strong> • {persona.designation || 'Head of Robotics & Physics'}
           </p>
         </div>
 
-        {/* Action Tabs */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-activia-surface border border-activia-border self-start sm:self-auto">
+        {/* Tab Controls */}
+        <div className="flex items-center gap-1.5 p-1 rounded-lg bg-app-secondary border border-app-border self-start md:self-auto">
           <button
             onClick={() => setActiveTab('approvals')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'approvals' ? 'bg-activia-blue text-white shadow' : 'text-activia-muted hover:text-white'
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              activeTab === 'approvals'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-app-muted hover:text-app-text'
             }`}
           >
-            Approvals Queue
+            <span>Approvals Queue</span>
             {pendingRegistrations.length > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-activia-rose text-white">
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-red-100 text-red-700 font-bold">
                 {pendingRegistrations.length}
               </span>
             )}
           </button>
           <button
             onClick={() => setActiveTab('create_activity')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'create_activity' ? 'bg-activia-blue text-white shadow' : 'text-activia-muted hover:text-white'
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              activeTab === 'create_activity'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-app-muted hover:text-app-text'
             }`}
           >
-            Create Activity
+            <Plus className="w-3.5 h-3.5" />
+            <span>Create Activity</span>
           </button>
           <button
             onClick={() => setActiveTab('teams')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'teams' ? 'bg-activia-blue text-white shadow' : 'text-activia-muted hover:text-white'
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              activeTab === 'teams'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-app-muted hover:text-app-text'
             }`}
           >
-            Supervised Teams ({teams.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('attendance')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'attendance' ? 'bg-activia-blue text-white shadow' : 'text-activia-muted hover:text-white'
-            }`}
-          >
-            Attendance & Results
+            <Users className="w-3.5 h-3.5" />
+            <span>Supervised Teams ({teams.length})</span>
           </button>
         </div>
       </div>
 
       {actionMessage && (
-        <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-400 flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-          {actionMessage}
+        <div className="p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <span>{actionMessage}</span>
         </div>
       )}
 
-      {/* 1. APPROVALS QUEUE */}
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl border border-app-border p-5 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-app-muted">Pending Applications</span>
+            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+              <Clock className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-app-text mt-3">{pendingRegistrations.length}</p>
+          <p className="text-xs text-app-muted mt-1">Awaiting mentor clearance</p>
+        </div>
+
+        <div className="bg-white rounded-xl border border-app-border p-5 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-app-muted">Approved Registrations</span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <CheckCircle className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-app-text mt-3">{confirmedRegistrations.length}</p>
+          <p className="text-xs text-app-muted mt-1">Confirmed active participants</p>
+        </div>
+
+        <div className="bg-white rounded-xl border border-app-border p-5 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-app-muted">Supervised Activities</span>
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <Calendar className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-app-text mt-3">{activities.length}</p>
+          <p className="text-xs text-app-muted mt-1">Published departmental events</p>
+        </div>
+
+        <div className="bg-white rounded-xl border border-app-border p-5 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-app-muted">Mentored Teams</span>
+            <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-app-text mt-3">{teams.length}</p>
+          <p className="text-xs text-app-muted mt-1">Competition squads</p>
+        </div>
+      </div>
+
+      {/* TAB 1: REGISTRATION APPROVALS QUEUE */}
       {activeTab === 'approvals' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-white/5">
-            <h3 className="text-base font-bold text-white font-display">
-              Pending Student Applications ({pendingRegistrations.length})
-            </h3>
-            <span className="text-xs text-activia-muted">
-              Approve or reject student registrations before registration deadlines.
-            </span>
+        <div className="bg-white rounded-xl border border-app-border shadow-xs overflow-hidden">
+          <div className="p-5 border-b border-app-border flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-bold text-app-text">Pending Registration Approvals</h3>
+              <p className="text-xs text-app-muted mt-0.5">
+                Review student applications and allocate event seats.
+              </p>
+            </div>
           </div>
 
           {pendingRegistrations.length === 0 ? (
-            <div className="p-12 text-center rounded-3xl bg-activia-surface/50 border border-activia-border/50">
-              <CheckCircle2 className="w-10 h-10 text-activia-mint mx-auto mb-2 opacity-80" />
-              <h4 className="text-base font-bold text-white">All Clear!</h4>
-              <p className="text-xs text-activia-muted mt-1">
-                No registrations are currently awaiting your faculty authorization.
+            <div className="p-16 text-center">
+              <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto mb-3" />
+              <h4 className="text-base font-semibold text-app-text">All Caught Up!</h4>
+              <p className="text-xs text-app-muted mt-1">
+                There are no pending registrations requiring faculty review at this time.
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="divide-y divide-app-border">
               {pendingRegistrations.map(reg => (
-                <div
-                  key={reg.id}
-                  className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl space-y-4"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/5">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-activia-cyan">
-                        {reg.activityCategory} • {reg.format.toUpperCase()} REGISTRATION
+                <div key={reg.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-app-secondary/30 transition-colors">
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700">
+                        {reg.activityTitle}
                       </span>
-                      <h4 className="text-base font-bold text-white mt-0.5">{reg.activityTitle}</h4>
+                      <span className="text-xs text-app-subtle">
+                        Applied: {new Date(reg.submittedAt).toLocaleDateString()}
+                      </span>
                     </div>
-                    <span className="text-[11px] text-activia-muted">
-                      Applied: {new Date(reg.submittedAt).toLocaleDateString()}
-                    </span>
-                  </div>
 
-                  {/* Student Details Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-2xl bg-activia-elevated/70 text-xs">
-                    <div>
-                      <span className="text-activia-muted block">Student</span>
-                      <strong className="text-white">{reg.studentName}</strong>
-                    </div>
-                    <div>
-                      <span className="text-activia-muted block">Grade / Section</span>
-                      <strong className="text-white">{reg.studentGrade} - {reg.studentSection}</strong>
-                    </div>
-                    <div>
-                      <span className="text-activia-muted block">House</span>
-                      <strong className="text-white">{reg.studentHouse}</strong>
-                    </div>
-                    <div>
-                      <span className="text-activia-muted block">Parent Consent</span>
-                      <strong className="text-activia-mint flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Verified
-                      </strong>
-                    </div>
-                  </div>
-
-                  {reg.teamName && (
-                    <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs">
-                      <p className="font-semibold text-white">Proposed Squad: {reg.teamName}</p>
-                      <p className="text-activia-muted mt-0.5">Roster: {reg.teamMembers?.join(', ')}</p>
-                    </div>
-                  )}
-
-                  {/* Motivation */}
-                  <div className="text-xs">
-                    <span className="text-activia-muted font-semibold block mb-1">Student Motivation:</span>
-                    <p className="text-activia-text italic bg-white/5 p-3 rounded-xl leading-relaxed">
-                      &ldquo;{reg.motivation}&rdquo;
+                    <p className="text-sm font-bold text-app-text">
+                      {reg.studentName} <span className="text-xs font-normal text-app-muted">({reg.studentGrade} • {reg.studentHouse} House)</span>
                     </p>
+
+                    {reg.motivation && (
+                      <p className="text-xs text-app-muted leading-relaxed bg-app-secondary p-2.5 rounded-lg border border-app-border">
+                        &ldquo;{reg.motivation}&rdquo;
+                      </p>
+                    )}
                   </div>
 
-                  {/* Review Notes Input */}
-                  <div>
-                    <label className="text-[11px] text-activia-muted block mb-1">
-                      Faculty Feedback / Endorsement Notes
-                    </label>
+                  <div className="flex items-center gap-2 self-end md:self-center flex-shrink-0">
                     <input
                       type="text"
-                      placeholder="e.g. Cleared for Lab 3 hardware testing..."
+                      placeholder="Mentor note (optional)..."
                       value={approvalNotes[reg.id] || ''}
                       onChange={e => setApprovalNotes({ ...approvalNotes, [reg.id]: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+                      className="px-3 py-1.5 text-xs rounded-lg border border-app-border bg-white text-app-text w-48 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
-                  </div>
-
-                  {/* Approve / Reject Actions */}
-                  <div className="pt-2 flex items-center justify-end gap-2.5">
-                    <button
-                      onClick={() => handleReject(reg.id)}
-                      className="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold transition-all flex items-center gap-1.5"
-                    >
-                      <XCircle className="w-4 h-4" />
-                      Decline Registration
-                    </button>
                     <button
                       onClick={() => handleApprove(reg.id)}
-                      className="px-5 py-2 rounded-xl bg-gradient-to-r from-activia-blue to-activia-purple hover:opacity-90 text-white text-xs font-bold shadow-lg transition-all flex items-center gap-1.5"
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-xs"
                     >
-                      <CheckCircle className="w-4 h-4" />
-                      Grant Faculty Approval
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleReject(reg.id)}
+                      className="px-3 py-1.5 rounded-lg bg-white hover:bg-red-50 text-red-600 border border-red-200 font-semibold text-xs transition-colors"
+                    >
+                      Decline
                     </button>
                   </div>
                 </div>
@@ -299,36 +297,36 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         </div>
       )}
 
-      {/* 2. CREATE NEW ACTIVITY DRAFT */}
+      {/* TAB 2: CREATE NEW ACTIVITY */}
       {activeTab === 'create_activity' && (
-        <div className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl max-w-2xl mx-auto space-y-4">
-          <div>
-            <h3 className="text-base font-bold text-white font-display">Draft & Publish Activity</h3>
-            <p className="text-xs text-activia-muted mt-0.5">
-              Launch a sanctioned competition, workshop, or inter-house challenge into the ACTIVIA directory.
+        <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs max-w-2xl mx-auto space-y-4">
+          <div className="pb-3 border-b border-app-border">
+            <h3 className="text-base font-bold text-app-text">Publish New Co-Curricular Activity</h3>
+            <p className="text-xs text-app-muted mt-0.5">
+              Create a sanctioned school workshop, competition, or trial session with verified capacity guards.
             </p>
           </div>
 
-          <form onSubmit={handleCreateActivitySubmit} className="space-y-4">
+          <form onSubmit={handleCreateActivitySubmit} className="space-y-4 text-xs">
             <div>
-              <label className="text-xs text-activia-muted block mb-1">Activity Title *</label>
+              <label className="text-app-muted block mb-1 font-medium">Activity Title *</label>
               <input
                 type="text"
                 required
-                placeholder="e.g. Autonomous Drone Racing Invitational"
+                placeholder="e.g. Regional Championship Mock Trials"
                 value={newTitle}
                 onChange={e => setNewTitle(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+                className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-activia-muted block mb-1">Sector Category</label>
+                <label className="text-app-muted block mb-1 font-medium">Category / Department *</label>
                 <select
                   value={newCategory}
                   onChange={e => setNewCategory(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+                  className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
                 >
                   {ACTIVITY_CATEGORIES.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
@@ -337,187 +335,129 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               </div>
 
               <div>
-                <label className="text-xs text-activia-muted block mb-1">Participation Format</label>
+                <label className="text-app-muted block mb-1 font-medium">Participation Format</label>
                 <select
                   value={newFormat}
-                  onChange={e => setNewFormat(e.target.value as any)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+                  onChange={e => setNewFormat(e.target.value as 'individual' | 'team')}
+                  className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text"
                 >
-                  <option value="individual">Individual Entry</option>
-                  <option value="team">Team Squad Format</option>
+                  <option value="individual">Individual Participation</option>
+                  <option value="team">Team / Squad Collaboration</option>
                 </select>
               </div>
             </div>
 
             <div>
-              <label className="text-xs text-activia-muted block mb-1">Brief Description *</label>
+              <label className="text-app-muted block mb-1 font-medium">Overview Description *</label>
               <textarea
                 required
-                rows={3}
-                placeholder="Summarize the learning goals, technical requirements, and target outcomes..."
+                placeholder="Comprehensive description of objectives, schedule, prerequisites, and equipment..."
                 value={newDesc}
                 onChange={e => setNewDesc(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue resize-none"
+                rows={3}
+                className="w-full p-3 rounded-lg border border-app-border bg-white text-app-text focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-activia-muted block mb-1">Event Date</label>
+                <label className="text-app-muted block mb-1 font-medium">Date (YYYY-MM-DD) *</label>
                 <input
                   type="date"
+                  required
                   value={newDate}
                   onChange={e => setNewDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+                  className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text"
                 />
               </div>
               <div>
-                <label className="text-xs text-activia-muted block mb-1">Start Time</label>
+                <label className="text-app-muted block mb-1 font-medium">Start Time *</label>
                 <input
                   type="time"
+                  required
                   value={newStartTime}
                   onChange={e => setNewStartTime(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+                  className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text"
                 />
               </div>
               <div>
-                <label className="text-xs text-activia-muted block mb-1">End Time</label>
+                <label className="text-app-muted block mb-1 font-medium">End Time *</label>
                 <input
                   type="time"
+                  required
                   value={newEndTime}
                   onChange={e => setNewEndTime(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+                  className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-activia-muted block mb-1">Campus Venue</label>
+                <label className="text-app-muted block mb-1 font-medium">Venue / Room *</label>
                 <input
                   type="text"
+                  required
+                  placeholder="e.g. Science Center Lab 4B"
                   value={newVenue}
                   onChange={e => setNewVenue(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+                  className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text"
                 />
               </div>
               <div>
-                <label className="text-xs text-activia-muted block mb-1">Seat Capacity</label>
+                <label className="text-app-muted block mb-1 font-medium">Participant Capacity</label>
                 <input
                   type="number"
+                  placeholder="e.g. 40"
                   value={newCapacity}
                   onChange={e => setNewCapacity(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+                  className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text"
                 />
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-activia-blue hover:bg-activia-blue/90 text-white text-xs font-bold shadow-lg transition-all flex items-center justify-center gap-2"
-            >
-              <Send className="w-3.5 h-3.5" />
-              Publish to Activity Universe
-            </button>
+            <div className="pt-3 border-t border-app-border flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('approvals')}
+                className="px-4 py-2 rounded-lg border border-app-border text-app-text font-medium hover:bg-app-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-xs"
+              >
+                Publish Activity
+              </button>
+            </div>
           </form>
         </div>
       )}
 
-      {/* 3. SUPERVISED TEAMS */}
+      {/* TAB 3: SUPERVISED TEAMS */}
       {activeTab === 'teams' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {teams.map(team => (
-              <div key={team.id} className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-activia-blue">
-                    {team.activityTitle}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-activia-mint/20 text-activia-mint">
-                    Progress: {team.milestoneProgress}%
-                  </span>
-                </div>
-
-                <h3 className="text-base font-bold text-white font-display">{team.name}</h3>
-                <p className="text-xs text-activia-muted">Project: {team.projectTitle}</p>
-
-                <div className="p-3 rounded-2xl bg-activia-elevated/70 space-y-2 text-xs">
-                  <span className="text-white font-semibold">Active Members:</span>
-                  <div className="flex flex-wrap gap-2">
-                    {team.members.map(m => (
-                      <span key={m.id} className="px-2.5 py-1 rounded-lg bg-white/5 text-white text-[11px]">
-                        {m.name} ({m.role})
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => onNavigate('competitions')}
-                  className="w-full py-2 rounded-xl bg-activia-elevated hover:bg-white/10 text-white text-xs font-semibold border border-white/10 transition-colors"
-                >
-                  Open Team Task Board
-                </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {teams.map(team => (
+            <div key={team.id} className="bg-white rounded-xl border border-app-border p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                  {team.activityTitle}
+                </span>
+                <span className="text-xs font-mono font-bold text-app-muted">Code: {team.inviteCode}</span>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* 4. ATTENDANCE & RESULTS LOGGING */}
-      {activeTab === 'attendance' && (
-        <div className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-white/5">
-            <div>
-              <h3 className="text-base font-bold text-white font-display">Event Attendance & Result Roster</h3>
-              <p className="text-xs text-activia-muted mt-0.5">
-                Mark attendance and submit verified competition outcomes for certificate issuance.
-              </p>
+              <div>
+                <h4 className="text-base font-bold text-app-text">{team.name}</h4>
+                <p className="text-xs text-app-muted mt-0.5">Leader: {team.leaderName}</p>
+              </div>
+
+              <div className="pt-2 border-t border-app-border-subtle flex items-center justify-between text-xs text-app-muted">
+                <span>Roster: {team.members.length} students</span>
+                <span>Progress: {team.milestoneProgress}%</span>
+              </div>
             </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-activia-muted">
-              <thead className="bg-white/5 text-white uppercase text-[10px] tracking-wider">
-                <tr>
-                  <th className="p-3">Student / Squad</th>
-                  <th className="p-3">Activity</th>
-                  <th className="p-3">House</th>
-                  <th className="p-3">Attendance</th>
-                  <th className="p-3">Outcome Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {registrations.filter(r => r.status === 'confirmed').map(reg => {
-                  const isPresent = attendanceRecords[reg.id] !== false;
-                  return (
-                    <tr key={reg.id} className="hover:bg-white/[0.02]">
-                      <td className="p-3 font-semibold text-white">
-                        {reg.teamName ? `${reg.teamName} (${reg.studentName})` : reg.studentName}
-                      </td>
-                      <td className="p-3">{reg.activityTitle}</td>
-                      <td className="p-3 text-activia-cyan">{reg.studentHouse}</td>
-                      <td className="p-3">
-                        <button
-                          onClick={() => setAttendanceRecords({ ...attendanceRecords, [reg.id]: !isPresent })}
-                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                            isPresent
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                              : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
-                          }`}
-                        >
-                          {isPresent ? 'Present' : 'Absent'}
-                        </button>
-                      </td>
-                      <td className="p-3 text-activia-mint font-semibold">
-                        Eligible for Verification
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          ))}
         </div>
       )}
     </div>

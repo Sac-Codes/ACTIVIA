@@ -363,6 +363,10 @@ router.post('/', requireAuth, (req: AuthenticatedRequest, res: Response): void =
       )
     `);
 
+    // Ensure created_by references a valid administrator id
+    const adminRow = db.prepare('SELECT id FROM administrators WHERE id = ?').get(req.user!.id) as any;
+    const fallbackAdmin = adminRow ? adminRow.id : (db.prepare('SELECT id FROM administrators LIMIT 1').get() as any)?.id || 1;
+
     const result = insertStmt.run(
       title.trim(),
       description.trim(),
@@ -379,7 +383,7 @@ router.post('/', requireAuth, (req: AuthenticatedRequest, res: Response): void =
       capacity ? Number(capacity) : null,
       registration_url ? registration_url.trim() : null,
       participation_instructions ? participation_instructions.trim() : null,
-      req.user!.id
+      fallbackAdmin
     );
 
     const newActivityId = Number(result.lastInsertRowid);
@@ -389,7 +393,7 @@ router.post('/', requireAuth, (req: AuthenticatedRequest, res: Response): void =
       INSERT INTO audit_logs (admin_id, admin_username, action, entity, entity_id, details)
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(
-      req.user!.id,
+      fallbackAdmin,
       req.user!.username,
       'CREATE',
       'activity',

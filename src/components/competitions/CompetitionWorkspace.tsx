@@ -5,18 +5,17 @@ import {
   CheckCircle2,
   Clock,
   Plus,
-  ArrowRight,
-  ShieldCheck,
   FileText,
   Upload,
   Calendar,
   Sparkles,
-  MessageSquare,
   AlertCircle,
   Copy,
   Check,
   ChevronRight,
-  Filter
+  Filter,
+  User,
+  ShieldCheck
 } from 'lucide-react';
 import { Team, ProjectTask, Registration, Activity, TaskStatus, TaskPriority } from '../../types';
 
@@ -76,7 +75,7 @@ export const CompetitionWorkspace: React.FC<CompetitionWorkspaceProps> = ({
 
   // Submission simulator state
   const [submittedFile, setSubmittedFile] = useState<{ name: string; size: string; date: string } | null>({
-    name: 'AstroBots_Rover_SLAM_Logbook_v2.1.pdf',
+    name: 'AstroBots_Rover_Autonomous_Design_v2.pdf',
     size: '8.4 MB',
     date: '2026-10-27'
   });
@@ -98,16 +97,17 @@ export const CompetitionWorkspace: React.FC<CompetitionWorkspaceProps> = ({
     setJoinSuccess(null);
     if (!inviteCodeInput.trim()) return;
 
-    const res = onJoinTeamByCode(inviteCodeInput);
+    const res = onJoinTeamByCode(inviteCodeInput.trim());
     if (res.success) {
-      setJoinSuccess(`Successfully joined team!`);
+      setJoinSuccess(`Successfully joined team squad!`);
       setInviteCodeInput('');
+      setTimeout(() => setJoinSuccess(null), 3500);
     } else {
-      setJoinError(res.error || 'Failed to join team.');
+      setJoinError(res.error || 'Failed to join team. Please verify the 6-character code.');
     }
   };
 
-  const handleCreateTask = (e: React.FormEvent) => {
+  const handleCreateTaskSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskTitle.trim() || !selectedTeam) return;
 
@@ -136,42 +136,38 @@ export const CompetitionWorkspace: React.FC<CompetitionWorkspaceProps> = ({
     setTimeout(() => setUploadSuccess(false), 3000);
   };
 
-  const kanbanColumns: Array<{ status: TaskStatus; label: string; color: string }> = [
-    { status: 'todo', label: 'To-Do', color: 'text-activia-muted' },
-    { status: 'in_progress', label: 'In Progress', color: 'text-activia-blue' },
-    { status: 'review', label: 'Under Review', color: 'text-activia-purple' },
-    { status: 'done', label: 'Completed', color: 'text-activia-mint' },
+  const kanbanColumns: Array<{ status: TaskStatus; label: string; bg: string }> = [
+    { status: 'todo', label: 'To-Do', bg: 'bg-app-secondary' },
+    { status: 'in_progress', label: 'In Progress', bg: 'bg-indigo-50/50' },
+    { status: 'review', label: 'Under Review', bg: 'bg-amber-50/50' },
+    { status: 'done', label: 'Completed', bg: 'bg-emerald-50/50' },
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300 pb-12">
+    <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-activia-amber flex items-center gap-1.5">
-            <Trophy className="w-3.5 h-3.5" />
-            Competitive Journey & Team Hub
-          </span>
-          <h2 className="text-2xl font-bold font-display text-white mt-0.5">
-            Competition Management Centre
+          <h2 className="text-xl sm:text-2xl font-bold font-display text-app-text">
+            Competitions & Team Workspace
           </h2>
-          <p className="text-xs text-activia-muted mt-1">
-            Supervise team rosters, track 12-stage milestone progress, and collaborate on task Kanban boards.
+          <p className="text-xs sm:text-sm text-app-muted mt-1">
+            Collaborate on inter-school competitions, track 12-stage milestone roadmaps, and manage task assignments.
           </p>
         </div>
 
-        {/* Join team code pill */}
-        <form onSubmit={handleJoinByCode} className="flex items-center gap-2">
+        {/* Join team by code */}
+        <form onSubmit={handleJoinByCode} className="flex items-center gap-2 self-start md:self-auto">
           <input
             type="text"
-            placeholder="Enter Team Invite Code..."
+            placeholder="Team Invite Code..."
             value={inviteCodeInput}
             onChange={e => setInviteCodeInput(e.target.value)}
-            className="px-3.5 py-2 rounded-xl bg-activia-surface border border-activia-border text-xs text-white placeholder:text-activia-muted focus:outline-none focus:border-activia-blue uppercase font-mono"
+            className="w-40 sm:w-48 px-3 py-2 rounded-lg bg-app-secondary border border-app-border text-xs text-app-text uppercase font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
           />
           <button
             type="submit"
-            className="px-4 py-2 rounded-xl bg-activia-blue hover:bg-activia-blue/90 text-white text-xs font-semibold shadow-lg transition-all"
+            className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition-colors whitespace-nowrap"
           >
             Join Team
           </button>
@@ -179,217 +175,182 @@ export const CompetitionWorkspace: React.FC<CompetitionWorkspaceProps> = ({
       </div>
 
       {joinError && (
-        <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-400">
-          {joinError}
+        <div className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span>{joinError}</span>
         </div>
       )}
       {joinSuccess && (
-        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
-          {joinSuccess}
+        <div className="p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          <span>{joinSuccess}</span>
         </div>
       )}
 
-      {/* 1. 12-Stage Competition Milestones Timeline */}
-      <div className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl">
-        <div className="flex items-center justify-between mb-4">
+      {/* 1. 12-Stage Competition Milestones Roadmap */}
+      <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold text-white font-display flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-activia-blue" />
-              12-Stage Competition Milestone Tracker
+            <h3 className="text-sm font-bold text-app-text flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-indigo-600" />
+              12-Stage Competition Milestone Roadmap
             </h3>
-            <p className="text-xs text-activia-muted mt-0.5">
-              Active Milestone Progress for {selectedTeam?.name || 'AstroBots Alpha'}: 65% Completed
+            <p className="text-xs text-app-muted mt-0.5">
+              Active Milestone Progress for {selectedTeam?.name || 'AstroBots Alpha'}: 50% Completed
             </p>
           </div>
-          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-activia-blue/20 text-activia-blue border border-activia-blue/30">
+          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
             Phase 6 / 12
           </span>
         </div>
 
-        {/* Timeline Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2.5 pt-2">
+        {/* Milestone Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 pt-1">
           {MILESTONES.map((m, idx) => (
             <div
               key={m.id}
-              className={`p-3 rounded-xl border text-left transition-all ${
+              className={`p-3 rounded-lg border text-left text-xs transition-colors ${
                 m.completed
-                  ? 'bg-activia-blue/10 border-activia-blue/30 text-white'
+                  ? 'bg-emerald-50/50 border-emerald-200 text-emerald-900 font-medium'
                   : idx === 6
-                  ? 'bg-amber-500/10 border-amber-500/40 text-amber-200'
-                  : 'bg-white/[0.02] border-white/5 text-activia-muted'
+                  ? 'bg-indigo-50 border-indigo-200 text-indigo-900 font-semibold'
+                  : 'bg-app-secondary/40 border-app-border text-app-muted'
               }`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-mono font-bold">Step {m.id}</span>
+                <span className="text-[10px] font-bold">Stage {m.id}</span>
                 {m.completed ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-activia-mint" />
-                ) : idx === 6 ? (
-                  <Clock className="w-3.5 h-3.5 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                 ) : (
-                  <span className="w-2 h-2 rounded-full bg-white/20" />
+                  <Clock className="w-3.5 h-3.5 text-app-subtle" />
                 )}
               </div>
-              <p className="text-[11px] font-semibold leading-tight">{m.label}</p>
+              <p className="line-clamp-2 leading-tight">{m.label}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* 2. Team Overview & Roster Bar */}
+      {/* 2. Team Roster & Invite Code Banner */}
       {selectedTeam && (
-        <div className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-white/10">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-activia-blue/20 text-activia-blue">
-                  {selectedTeam.activityTitle}
-                </span>
-                <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-activia-mint/20 text-activia-mint">
-                  {selectedTeam.status.replace(/_/g, ' ')}
-                </span>
-              </div>
-              <h3 className="text-xl font-bold font-display text-white">{selectedTeam.name}</h3>
-              <p className="text-xs text-activia-muted mt-1 max-w-2xl">
-                Project: <strong className="text-white">{selectedTeam.projectTitle}</strong>
-              </p>
-            </div>
-
-            {/* Invite Code & Mentor Badge */}
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="p-2.5 px-3.5 rounded-xl bg-activia-elevated border border-white/10 flex items-center gap-2 text-xs">
-                <span className="text-activia-muted">Team Invite Code:</span>
-                <span className="font-mono font-bold text-activia-cyan">{selectedTeam.inviteCode}</span>
-                <button
-                  onClick={handleCopyCode}
-                  className="p-1 rounded hover:bg-white/10 text-activia-muted hover:text-white transition-colors"
-                  title="Copy code"
-                >
-                  {codeCopied ? <Check className="w-3.5 h-3.5 text-activia-mint" /> : <Copy className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-
-              <div className="p-2.5 px-3.5 rounded-xl bg-activia-elevated border border-white/10 text-xs text-activia-muted flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-activia-purple" />
-                <span>Mentor: <strong className="text-white">{selectedTeam.mentorName}</strong></span>
-              </div>
-            </div>
+        <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
+              Active Squad
+            </span>
+            <h3 className="text-lg font-bold text-app-text">{selectedTeam.name}</h3>
+            <p className="text-xs text-app-muted">
+              Competition: <strong>{selectedTeam.activityTitle}</strong> • Faculty Mentor: <strong>{selectedTeam.mentorName}</strong>
+            </p>
           </div>
 
-          {/* Member Roster Chips */}
-          <div className="pt-4">
-            <h4 className="text-xs font-bold text-white mb-3">Team Squad Roster ({selectedTeam.members.length} members)</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {selectedTeam.members.map(member => (
-                <div key={member.id} className="p-3 rounded-2xl bg-activia-elevated/80 border border-white/5 flex items-center gap-3">
-                  <img
-                    src={member.avatar}
-                    alt={member.name}
-                    className="w-9 h-9 rounded-xl object-cover ring-1 ring-white/10"
-                  />
-                  <div>
-                    <p className="text-xs font-bold text-white leading-tight">{member.name}</p>
-                    <p className="text-[10px] text-activia-cyan font-semibold">{member.role} • {member.grade}</p>
-                  </div>
-                </div>
-              ))}
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-lg bg-app-secondary border border-app-border flex items-center gap-3">
+              <span className="text-xs text-app-muted">Invite Code:</span>
+              <span className="font-mono font-bold text-sm text-indigo-700 tracking-wider">
+                {selectedTeam.inviteCode}
+              </span>
+              <button
+                onClick={handleCopyCode}
+                className="p-1 rounded text-app-muted hover:text-indigo-600"
+                title="Copy invite code"
+              >
+                {codeCopied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+              </button>
             </div>
+
+            <button
+              onClick={() => setNewTaskOpen(true)}
+              className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs transition-colors flex items-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Create Task</span>
+            </button>
           </div>
         </div>
       )}
 
-      {/* 3. Project Kanban Task Board */}
-      <div className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-base font-bold text-white font-display">Sprint Task Kanban Board</h3>
-            <p className="text-xs text-activia-muted mt-0.5">
-              Drag, assign, and advance tasks across sprint states.
-            </p>
-          </div>
-          <button
-            onClick={() => setNewTaskOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-activia-blue hover:bg-activia-blue/90 text-white text-xs font-bold shadow-lg transition-all flex items-center gap-1.5"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Create Task
-          </button>
+      {/* 3. Team Kanban Board */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-app-text">Team Kanban Board</h3>
+          <span className="text-xs text-app-muted">{teamTasks.length} active tasks</span>
         </div>
 
-        {/* 4 Columns Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {kanbanColumns.map(col => {
             const colTasks = teamTasks.filter(t => t.status === col.status);
             return (
               <div
                 key={col.status}
-                className="p-4 rounded-2xl bg-activia-elevated/60 border border-white/5 flex flex-col min-h-[300px]"
+                className="bg-white rounded-xl border border-app-border p-4 shadow-xs flex flex-col justify-between min-h-[280px]"
               >
-                <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/5">
-                  <span className={`text-xs font-bold uppercase tracking-wider ${col.color}`}>
-                    {col.label}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-white">
-                    {colTasks.length}
-                  </span>
-                </div>
+                <div>
+                  <div className="flex items-center justify-between pb-3 border-b border-app-border mb-3">
+                    <span className="text-xs font-bold text-app-text">{col.label}</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-app-secondary text-app-muted">
+                      {colTasks.length}
+                    </span>
+                  </div>
 
-                <div className="space-y-3 flex-1 overflow-y-auto">
-                  {colTasks.length === 0 ? (
-                    <p className="text-[11px] text-activia-muted/60 text-center py-8">No tasks</p>
-                  ) : (
-                    colTasks.map(task => (
-                      <div
-                        key={task.id}
-                        className="p-3.5 rounded-xl bg-activia-surface border border-activia-border hover:border-activia-blue/40 transition-all shadow-sm space-y-2 group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                              task.priority === 'urgent'
-                                ? 'bg-rose-500/20 text-rose-400'
-                                : task.priority === 'high'
-                                ? 'bg-amber-500/20 text-amber-400'
-                                : 'bg-blue-500/20 text-blue-400'
-                            }`}
-                          >
-                            {task.priority}
-                          </span>
-                          <span className="text-[10px] text-activia-muted">{task.dueDate}</span>
-                        </div>
+                  <div className="space-y-2.5">
+                    {colTasks.length === 0 ? (
+                      <p className="text-xs text-app-subtle text-center py-8 italic">No tasks</p>
+                    ) : (
+                      colTasks.map(task => (
+                        <div
+                          key={task.id}
+                          className="p-3 rounded-lg bg-app-secondary/60 border border-app-border space-y-2 text-xs"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-app-text truncate">{task.title}</span>
+                            <span className={`px-1.5 py-0.2 rounded text-[10px] font-semibold uppercase ${
+                              task.priority === 'urgent' ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {task.priority}
+                            </span>
+                          </div>
 
-                        <h4 className="text-xs font-bold text-white group-hover:text-activia-blue transition-colors">
-                          {task.title}
-                        </h4>
-                        <p className="text-[11px] text-activia-muted line-clamp-2 leading-relaxed">
-                          {task.description}
-                        </p>
+                          {task.description && (
+                            <p className="text-app-muted leading-relaxed line-clamp-2">{task.description}</p>
+                          )}
 
-                        <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
-                          <span className="text-white font-medium">{task.assigneeName}</span>
+                          <div className="pt-2 border-t border-app-border-subtle flex items-center justify-between text-[11px] text-app-subtle">
+                            <span>{task.assigneeName}</span>
+                            <span>Due: {task.dueDate}</span>
+                          </div>
 
-                          {/* Quick advance button */}
-                          <div className="flex items-center gap-1">
+                          {/* Quick status transition dropdown */}
+                          <div className="pt-1 flex items-center justify-end gap-1">
+                            {col.status !== 'todo' && (
+                              <button
+                                onClick={() => onUpdateTaskStatus(task.id, 'todo')}
+                                className="px-1.5 py-0.5 rounded text-[10px] text-app-muted hover:bg-white"
+                              >
+                                ← To-Do
+                              </button>
+                            )}
+                            {col.status !== 'in_progress' && (
+                              <button
+                                onClick={() => onUpdateTaskStatus(task.id, 'in_progress')}
+                                className="px-1.5 py-0.5 rounded text-[10px] text-indigo-600 hover:bg-white font-medium"
+                              >
+                                Progress
+                              </button>
+                            )}
                             {col.status !== 'done' && (
                               <button
-                                onClick={() => {
-                                  const nextStatus: Record<TaskStatus, TaskStatus> = {
-                                    todo: 'in_progress',
-                                    in_progress: 'review',
-                                    review: 'done',
-                                    done: 'done',
-                                  };
-                                  onUpdateTaskStatus(task.id, nextStatus[col.status]);
-                                }}
-                                className="px-2 py-0.5 rounded bg-white/5 hover:bg-activia-blue hover:text-white text-activia-cyan font-medium transition-colors"
+                                onClick={() => onUpdateTaskStatus(task.id, 'done')}
+                                className="px-1.5 py-0.5 rounded text-[10px] text-emerald-700 hover:bg-white font-medium"
                               >
-                                Advance →
+                                Done →
                               </button>
                             )}
                           </div>
                         </div>
-                      </div>
-                    ))
-                  )}
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -397,120 +358,72 @@ export const CompetitionWorkspace: React.FC<CompetitionWorkspaceProps> = ({
         </div>
       </div>
 
-      {/* 4. Project Artifact Submissions & Mentor Feedback */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Artifact Submissions */}
-        <div className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-white font-display flex items-center gap-2">
-              <FileText className="w-4 h-4 text-activia-cyan" />
-              Project Deliverables & Logbook
-            </h3>
-            <button
-              onClick={handleSimulateUpload}
-              className="px-3 py-1.5 rounded-xl bg-activia-elevated hover:bg-white/10 text-white text-xs font-semibold border border-white/10 transition-all flex items-center gap-1.5"
-            >
-              <Upload className="w-3.5 h-3.5 text-activia-cyan" />
-              Upload Revision
-            </button>
-          </div>
-
-          {uploadSuccess && (
-            <div className="mb-3 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400">
-              New project file revision successfully uploaded to school storage vault.
-            </div>
-          )}
-
-          {submittedFile && (
-            <div className="p-4 rounded-2xl bg-activia-elevated border border-white/5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-activia-blue flex items-center justify-center">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-white">{submittedFile.name}</p>
-                  <p className="text-[10px] text-activia-muted mt-0.5">
-                    {submittedFile.size} • Uploaded {submittedFile.date} • Verified SHA-256
-                  </p>
-                </div>
-              </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-activia-mint/20 text-activia-mint">
-                Approved Draft
-              </span>
-            </div>
-          )}
+      {/* 4. Project Deliverable Submission Card */}
+      <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h3 className="text-base font-bold text-app-text flex items-center gap-2">
+            <FileText className="w-4 h-4 text-indigo-600" />
+            Competition Deliverable Submission
+          </h3>
+          <p className="text-xs text-app-muted">
+            Uploaded file: <strong className="text-app-text">{submittedFile?.name}</strong> ({submittedFile?.size}) • Submitter: <strong>{studentName}</strong>
+          </p>
         </div>
 
-        {/* Mentor Feedback Thread */}
-        <div className="p-6 rounded-3xl bg-activia-surface border border-activia-border shadow-xl">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-white font-display flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-activia-purple" />
-              Faculty Mentor Directives
-            </h3>
-            <span className="text-xs text-activia-muted">Dr. Robert Vance</span>
-          </div>
-
-          <div className="space-y-3">
-            <div className="p-4 rounded-2xl bg-activia-elevated/70 border border-white/5 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-activia-purple">Milestone 2 Feedback</span>
-                <span className="text-[10px] text-activia-muted">Oct 26, 2026</span>
-              </div>
-              <p className="text-xs text-activia-text leading-relaxed">
-                &ldquo;Chassis structural rigidity looks solid. Please ensure your ultrasonic filter loops have noise-suppression dampening before our Thursday mock obstacle runs.&rdquo;
-              </p>
-            </div>
-          </div>
-        </div>
+        <button
+          onClick={handleSimulateUpload}
+          className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5 self-start md:self-auto"
+        >
+          <Upload className="w-3.5 h-3.5" />
+          <span>{uploadSuccess ? 'Document Uploaded!' : 'Upload New Revision'}</span>
+        </button>
       </div>
 
       {/* New Task Modal */}
       {newTaskOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-activia-surface border border-activia-border rounded-3xl p-6 shadow-2xl animate-in zoom-in-95">
-            <h3 className="text-base font-bold text-white mb-4">Create Project Task</h3>
-            <form onSubmit={handleCreateTask} className="space-y-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-white rounded-xl border border-app-border shadow-dropdown max-w-md w-full p-6 space-y-4">
+            <h3 className="text-base font-bold text-app-text">Create Team Task</h3>
+            <form onSubmit={handleCreateTaskSubmit} className="space-y-3 text-xs">
               <div>
-                <label className="text-xs text-activia-muted block mb-1">Task Title *</label>
+                <label className="text-app-muted block mb-1 font-medium">Task Title *</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Solder Motor Driver Shield"
+                  placeholder="e.g. Calibrate LIDAR sensor on rover frame"
                   value={taskTitle}
                   onChange={e => setTaskTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+                  className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
                 />
               </div>
+
               <div>
-                <label className="text-xs text-activia-muted block mb-1">Instructions / Context</label>
+                <label className="text-app-muted block mb-1 font-medium">Description</label>
                 <textarea
-                  rows={2}
-                  placeholder="Notes on parameters or components..."
+                  placeholder="Specific requirements or checklists..."
                   value={taskDesc}
                   onChange={e => setTaskDesc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue resize-none"
+                  rows={2}
+                  className="w-full p-2.5 rounded-lg border border-app-border bg-white text-app-text focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-2">
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-activia-muted block mb-1">Assignee</label>
-                  <select
+                  <label className="text-app-muted block mb-1 font-medium">Assignee</label>
+                  <input
+                    type="text"
                     value={taskAssignee}
                     onChange={e => setTaskAssignee(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
-                  >
-                    {selectedTeam?.members.map(m => (
-                      <option key={m.id} value={m.name}>{m.name}</option>
-                    ))}
-                  </select>
+                    className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text"
+                  />
                 </div>
                 <div>
-                  <label className="text-xs text-activia-muted block mb-1">Priority</label>
+                  <label className="text-app-muted block mb-1 font-medium">Priority</label>
                   <select
                     value={taskPriority}
                     onChange={e => setTaskPriority(e.target.value as TaskPriority)}
-                    className="w-full px-3 py-2 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
+                    className="w-full px-3 py-2 rounded-lg border border-app-border bg-white text-app-text"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
@@ -519,29 +432,20 @@ export const CompetitionWorkspace: React.FC<CompetitionWorkspaceProps> = ({
                   </select>
                 </div>
               </div>
-              <div>
-                <label className="text-xs text-activia-muted block mb-1">Target Due Date</label>
-                <input
-                  type="date"
-                  value={taskDueDate}
-                  onChange={e => setTaskDueDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
-                />
-              </div>
 
-              <div className="pt-3 flex items-center justify-end gap-2">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-app-border">
                 <button
                   type="button"
                   onClick={() => setNewTaskOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs text-activia-muted hover:text-white"
+                  className="px-3 py-1.5 rounded-lg border border-app-border text-app-text font-medium hover:bg-app-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-activia-blue hover:bg-activia-blue/90 text-white text-xs font-semibold"
+                  className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-xs"
                 >
-                  Save Task
+                  Create Task
                 </button>
               </div>
             </form>

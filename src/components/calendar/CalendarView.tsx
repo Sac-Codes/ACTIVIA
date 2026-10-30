@@ -8,10 +8,9 @@ import {
   AlertTriangle,
   Download,
   Filter,
-  Layers,
-  Sparkles,
+  Users,
   Trophy,
-  Users
+  List
 } from 'lucide-react';
 import { CalendarEvent, Venue } from '../../types';
 
@@ -26,36 +25,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   venues,
   onSelectEvent,
 }) => {
-  const [currentView, setCurrentView] = useState<'month' | 'agenda'>('month');
+  const [currentView, setCurrentView] = useState<'month' | 'agenda'>('agenda');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [currentMonth, setCurrentMonth] = useState('November 2026');
-
-  // Days in November 2026 for simulation
-  const daysInMonth = Array.from({ length: 30 }, (_, i) => i + 1);
+  const [currentMonth, setCurrentMonth] = useState('October / November 2026');
 
   const filteredEvents = events.filter(e =>
     selectedCategory === 'all' ? true : e.category === selectedCategory
   );
 
-  // Detect simulated conflicts (e.g. same venue and date)
-  const venueConflicts: Array<{ venue: string; date: string; events: string[] }> = [];
-  const eventMap: Record<string, CalendarEvent[]> = {};
+  // Group events by date for agenda view
+  const eventsByDate = filteredEvents.reduce((acc, evt) => {
+    const d = evt.date || 'Upcoming';
+    if (!acc[d]) acc[d] = [];
+    acc[d].push(evt);
+    return acc;
+  }, {} as Record<string, CalendarEvent[]>);
 
-  filteredEvents.forEach(e => {
-    const key = `${e.date}_${e.venue}`;
-    if (!eventMap[key]) eventMap[key] = [];
-    eventMap[key].push(e);
-  });
-
-  Object.entries(eventMap).forEach(([key, evts]) => {
-    if (evts.length > 1) {
-      venueConflicts.push({
-        venue: evts[0].venue,
-        date: evts[0].date,
-        events: evts.map(ev => ev.title)
-      });
-    }
-  });
+  const sortedDates = Object.keys(eventsByDate).sort();
 
   const exportICS = () => {
     const icsContent = [
@@ -69,6 +55,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         `DESCRIPTION:Category: ${e.categoryName}`,
         `DTSTART:${e.date.replace(/-/g, '')}T090000Z`,
         `DTEND:${e.date.replace(/-/g, '')}T170000Z`,
+        'STATUS:CONFIRMED',
         'END:VEVENT'
       ].join('\n')),
       'END:VCALENDAR'
@@ -78,210 +65,190 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', 'activia_calendar_2026.ics');
+    link.setAttribute('download', 'school_events_schedule.ics');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 pb-12">
+    <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-activia-cyan flex items-center gap-1.5">
-            <CalendarIcon className="w-3.5 h-3.5" />
-            Institutional Master Timetable
-          </span>
-          <h2 className="text-2xl font-bold font-display text-white mt-0.5">
-            Academic & Event Calendar
+          <h2 className="text-xl sm:text-2xl font-bold font-display text-app-text">
+            Events & Academic Calendar
           </h2>
-          <p className="text-xs text-activia-muted mt-1">
-            Real-time schedule for competitions, submission deadlines, club assemblies, and venue bookings.
+          <p className="text-xs sm:text-sm text-app-muted mt-1">
+            Track schedules for competitions, department workshops, club assemblies, and facility bookings.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* View Toggles */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-activia-surface border border-activia-border">
-            <button
-              onClick={() => setCurrentView('month')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                currentView === 'month' ? 'bg-activia-blue text-white shadow' : 'text-activia-muted hover:text-white'
-              }`}
-            >
-              Month Grid
-            </button>
+        <div className="flex items-center gap-2.5 self-start md:self-auto">
+          {/* View Toggle */}
+          <div className="flex items-center gap-1 p-1 rounded-lg bg-app-secondary border border-app-border">
             <button
               onClick={() => setCurrentView('agenda')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                currentView === 'agenda' ? 'bg-activia-blue text-white shadow' : 'text-activia-muted hover:text-white'
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                currentView === 'agenda'
+                  ? 'bg-white text-indigo-700 shadow-xs'
+                  : 'text-app-muted hover:text-app-text'
               }`}
             >
-              Agenda Feed
+              <List className="w-3.5 h-3.5" />
+              <span>Agenda Feed</span>
+            </button>
+            <button
+              onClick={() => setCurrentView('month')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                currentView === 'month'
+                  ? 'bg-white text-indigo-700 shadow-xs'
+                  : 'text-app-muted hover:text-app-text'
+              }`}
+            >
+              <CalendarIcon className="w-3.5 h-3.5" />
+              <span>Month Grid</span>
             </button>
           </div>
 
+          {/* ICS Export */}
           <button
             onClick={exportICS}
-            className="px-3.5 py-2 rounded-xl bg-activia-elevated hover:bg-white/10 text-white text-xs font-semibold border border-activia-border transition-all flex items-center gap-1.5"
-            title="Download iCal Feed"
+            className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5"
+            title="Download iCalendar format (.ics)"
           >
-            <Download className="w-3.5 h-3.5 text-activia-cyan" />
-            Export .ICS
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Export Calendar (.ICS)</span>
           </button>
         </div>
       </div>
 
-      {/* Venue Conflict Alert Banner if detected */}
-      {venueConflicts.length > 0 && (
-        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 text-xs text-amber-300">
-          <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <strong className="font-bold">Schedule Conflict Detected:</strong> Two activities are requesting identical venue slots ({venueConflicts[0].venue} on {venueConflicts[0].date}). The Activity Desk is reviewing alternative staging.
-          </div>
-        </div>
-      )}
-
-      {/* Month Navigator Bar */}
-      <div className="p-4 rounded-2xl bg-activia-surface border border-activia-border flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button className="p-1.5 rounded-lg hover:bg-white/10 text-activia-muted hover:text-white transition-colors">
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="text-sm font-bold text-white font-display">{currentMonth}</span>
-          <button className="p-1.5 rounded-lg hover:bg-white/10 text-activia-muted hover:text-white transition-colors">
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Category Filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-activia-muted hidden sm:inline">Sector:</span>
-          <select
-            value={selectedCategory}
-            onChange={e => setSelectedCategory(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-activia-elevated border border-activia-border text-xs text-white focus:outline-none focus:border-activia-blue"
-          >
-            <option value="all">All Sectors</option>
-            <option value="stem-robotics">STEM & Robotics</option>
-            <option value="science-math">Science & Math</option>
-            <option value="sports-athletics">Sports & Athletics</option>
-            <option value="arts-culture">Arts & Culture</option>
-            <option value="literature-debate">Literature & Debate</option>
-            <option value="social-service">Social Service</option>
-          </select>
-        </div>
-      </div>
-
-      {/* MONTH GRID VIEW */}
-      {currentView === 'month' && (
-        <div className="rounded-3xl bg-activia-surface border border-activia-border shadow-xl overflow-hidden p-4 sm:p-6">
-          {/* Days of week */}
-          <div className="grid grid-cols-7 gap-2 mb-2 text-center text-xs font-bold text-activia-muted uppercase tracking-wider">
-            <span>Sun</span>
-            <span>Mon</span>
-            <span>Tue</span>
-            <span>Wed</span>
-            <span>Thu</span>
-            <span>Fri</span>
-            <span>Sat</span>
-          </div>
-
-          {/* Calendar Day Tiles */}
-          <div className="grid grid-cols-7 gap-2">
-            {daysInMonth.map(day => {
-              const dateStr = `2026-11-${day < 10 ? '0' + day : day}`;
-              const dayEvents = filteredEvents.filter(e => e.date === dateStr);
+      {/* AGENDA FEED VIEW */}
+      {currentView === 'agenda' && (
+        <div className="space-y-6">
+          {sortedDates.length === 0 ? (
+            <div className="p-16 text-center rounded-xl bg-white border border-app-border shadow-xs">
+              <CalendarIcon className="w-10 h-10 text-app-muted mx-auto mb-3" />
+              <h3 className="text-base font-semibold text-app-text">No events scheduled</h3>
+              <p className="text-xs text-app-muted mt-1">
+                There are currently no events on the academic calendar.
+              </p>
+            </div>
+          ) : (
+            sortedDates.map(dateKey => {
+              const dayEvents = eventsByDate[dateKey];
+              const parsedDate = new Date(dateKey);
+              const formattedHeader = isNaN(parsedDate.getTime())
+                ? dateKey
+                : parsedDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
               return (
-                <div
-                  key={day}
-                  className={`min-h-[90px] sm:min-h-[110px] p-2 rounded-2xl border transition-all flex flex-col justify-between ${
-                    dayEvents.length > 0
-                      ? 'bg-activia-elevated/70 border-white/10 hover:border-activia-blue/40'
-                      : 'bg-white/[0.01] border-white/5 opacity-80'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className={`text-xs font-bold ${dayEvents.length > 0 ? 'text-white' : 'text-activia-muted'}`}>
-                      {day}
+                <div key={dateKey} className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100">
+                      {formattedHeader}
                     </span>
-                    {dayEvents.length > 0 && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-activia-blue" />
-                    )}
+                    <span className="h-px bg-app-border flex-1" />
                   </div>
 
-                  {/* Event Badges */}
-                  <div className="space-y-1 mt-1 flex-1 overflow-hidden">
-                    {dayEvents.map(ev => (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {dayEvents.map(evt => (
                       <div
-                        key={ev.id}
-                        className="px-1.5 py-0.5 rounded text-[10px] font-semibold truncate cursor-pointer hover:opacity-90 transition-opacity"
-                        style={{ backgroundColor: `${ev.color}25`, color: ev.color, border: `1px solid ${ev.color}40` }}
-                        title={`${ev.title} (${ev.time}) at ${ev.venue}`}
+                        key={evt.id}
+                        onClick={() => onSelectEvent && onSelectEvent(evt.id)}
+                        className="bg-white rounded-xl border border-app-border hover:border-indigo-300 p-5 shadow-xs hover:shadow-card-hover transition-all flex flex-col justify-between cursor-pointer group"
                       >
-                        {ev.title}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                              {evt.categoryName || 'Activity'}
+                            </span>
+                            <span className="text-xs font-medium text-app-muted flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-app-subtle" />
+                              {evt.time || 'Scheduled Time'}
+                            </span>
+                          </div>
+
+                          <h3 className="text-base font-bold text-app-text group-hover:text-indigo-600 transition-colors">
+                            {evt.title}
+                          </h3>
+
+                          <div className="flex items-center gap-2 text-xs text-app-muted pt-1">
+                            <MapPin className="w-3.5 h-3.5 text-app-subtle flex-shrink-0" />
+                            <span className="truncate">{evt.venue}</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-app-border flex items-center justify-between text-xs">
+                          <span className="text-app-muted capitalize">Type: {evt.type.replace(/_/g, ' ')}</span>
+                          <span className="font-semibold text-indigo-600 group-hover:underline">
+                            Details & Registration
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               );
-            })}
-          </div>
+            })
+          )}
         </div>
       )}
 
-      {/* AGENDA FEED VIEW */}
-      {currentView === 'agenda' && (
-        <div className="space-y-3">
-          {filteredEvents.map(ev => (
-            <div
-              key={ev.id}
-              className="p-5 rounded-3xl bg-activia-surface border border-activia-border/70 hover:border-activia-blue/50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg group"
-            >
-              <div className="flex items-start gap-4">
+      {/* MONTH GRID VIEW */}
+      {currentView === 'month' && (
+        <div className="bg-white rounded-xl border border-app-border p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-app-border">
+            <h3 className="text-base font-bold text-app-text">{currentMonth}</h3>
+            <span className="text-xs text-app-muted">School Term View</span>
+          </div>
+
+          <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-app-muted pb-2">
+            <div>Mon</div>
+            <div>Tue</div>
+            <div>Wed</div>
+            <div>Thu</div>
+            <div>Fri</div>
+            <div>Sat</div>
+            <div>Sun</div>
+          </div>
+
+          <div className="grid grid-cols-7 gap-2">
+            {Array.from({ length: 30 }, (_, i) => {
+              const dayNum = i + 1;
+              const dateStr = `2026-11-${String(dayNum).padStart(2, '0')}`;
+              const dayEvts = events.filter(e => e.date === dateStr);
+
+              return (
                 <div
-                  className="w-12 h-12 rounded-2xl flex flex-col items-center justify-center text-center flex-shrink-0"
-                  style={{ backgroundColor: `${ev.color}20`, border: `1px solid ${ev.color}40` }}
+                  key={dayNum}
+                  className={`min-h-[90px] p-2 rounded-lg border text-left transition-colors ${
+                    dayEvts.length > 0
+                      ? 'bg-indigo-50/30 border-indigo-200'
+                      : 'bg-app-secondary/30 border-app-border'
+                  }`}
                 >
-                  <span className="text-[10px] uppercase font-bold text-activia-muted">Nov</span>
-                  <span className="text-base font-extrabold text-white leading-none">
-                    {ev.date.split('-')[2]}
-                  </span>
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
-                      style={{ backgroundColor: `${ev.color}20`, color: ev.color }}
-                    >
-                      {ev.categoryName}
-                    </span>
-                    <span className="text-xs text-activia-muted">{ev.type}</span>
-                  </div>
-                  <h3 className="text-base font-bold text-white group-hover:text-activia-blue transition-colors font-display">
-                    {ev.title}
-                  </h3>
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-activia-muted mt-1.5">
-                    <span className="flex items-center gap-1 text-white/80">
-                      <Clock className="w-3.5 h-3.5 text-activia-purple" />
-                      {ev.time}
-                    </span>
-                    <span className="flex items-center gap-1 text-white/80">
-                      <MapPin className="w-3.5 h-3.5 text-activia-amber" />
-                      {ev.venue}
-                    </span>
+                  <span className="text-xs font-bold text-app-text block mb-1">{dayNum}</span>
+                  <div className="space-y-1">
+                    {dayEvts.slice(0, 2).map(e => (
+                      <div
+                        key={e.id}
+                        className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-600 text-white truncate"
+                        title={e.title}
+                      >
+                        {e.title}
+                      </div>
+                    ))}
+                    {dayEvts.length > 2 && (
+                      <span className="text-[10px] text-app-muted font-bold block">
+                        +{dayEvts.length - 2} more
+                      </span>
+                    )}
                   </div>
                 </div>
-              </div>
-
-              <span className="self-end sm:self-center px-3.5 py-1.5 rounded-xl bg-activia-elevated border border-white/10 text-xs font-semibold text-white">
-                Confirmed Booking
-              </span>
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
