@@ -15,7 +15,7 @@
   }
 
   body {
-    @apply antialiased bg-white text-app-text;
+    @apply antialiased bg-white;
     background-color: #FFFFFF;
     color: #172033;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
