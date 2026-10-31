@@ -18,6 +18,7 @@ import announcementRoutes from './routes/announcements.js';
 import ticketRoutes from './routes/tickets.js';
 import resourceRoutes from './routes/resources.js';
 import settingRoutes from './routes/settings.js';
+import userRoutes from './routes/users.js';
 
 dotenv.config();
 
@@ -66,6 +67,7 @@ app.use('/api/announcements', announcementRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/settings', settingRoutes);
+app.use('/api/users', userRoutes);
 
 // In production, serve the built frontend assets
 const distPath = path.resolve(__dirname, '../dist');
@@ -88,7 +90,7 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== 'test' && !process.argv.some(arg => arg.includes('test'))) {
   app.listen(PORT, () => {
     console.log(`=================================================`);
     console.log(` CampusFlow Backend running on http://localhost:${PORT}`);

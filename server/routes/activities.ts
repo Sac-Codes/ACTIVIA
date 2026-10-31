@@ -522,11 +522,14 @@ router.put('/:id', requireAuth, (req: AuthenticatedRequest, res: Response): void
     );
 
     // Audit log
+    const adminLog = db.prepare('SELECT id FROM administrators WHERE id = ?').get(req.user?.id) as any;
+    const adminLogId = adminLog?.id || (db.prepare('SELECT id FROM administrators LIMIT 1').get() as any)?.id || null;
+
     db.prepare(`
       INSERT INTO audit_logs (admin_id, admin_username, action, entity, entity_id, details)
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(
-      req.user!.id,
+      adminLogId,
       req.user!.username,
       'UPDATE',
       'activity',
@@ -565,11 +568,14 @@ router.delete('/:id', requireAuth, (req: AuthenticatedRequest, res: Response): v
     db.prepare('DELETE FROM activities WHERE id = ?').run(id);
 
     // Audit log
+    const adminLog = db.prepare('SELECT id FROM administrators WHERE id = ?').get(req.user?.id) as any;
+    const adminLogId = adminLog?.id || (db.prepare('SELECT id FROM administrators LIMIT 1').get() as any)?.id || null;
+
     db.prepare(`
       INSERT INTO audit_logs (admin_id, admin_username, action, entity, entity_id, details)
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(
-      req.user!.id,
+      adminLogId,
       req.user!.username,
       'DELETE',
       'activity',

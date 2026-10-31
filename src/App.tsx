@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
-import { ActivityGalaxy } from './components/3d/ActivityGalaxy';
-import { CampusView } from './components/3d/CampusView';
 import { StudentDashboard } from './components/student/StudentDashboard';
 import { ActivityDiscovery } from './components/activities/ActivityDiscovery';
 import { ActivityDetailModal } from './components/activities/ActivityDetailModal';
@@ -18,6 +16,15 @@ import { CommandSearchModal } from './components/common/CommandSearchModal';
 import { ApplicationsView } from './components/applications/ApplicationsView';
 import { ResourcesView } from './components/resources/ResourcesView';
 import { SettingsView } from './components/settings/SettingsView';
+import { UserManagementView } from './components/admin/UserManagementView';
+
+// Auth Pages
+import { LoginPage } from './components/auth/LoginPage';
+import { RegisterPage } from './components/auth/RegisterPage';
+import { ForgotPasswordPage } from './components/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './components/auth/ResetPasswordPage';
+import { AccessDeniedPage } from './components/auth/AccessDeniedPage';
+import { PendingApprovalPage } from './components/auth/PendingApprovalPage';
 
 import { activiaStore } from './api';
 import {
@@ -39,11 +46,39 @@ import {
   AdminAnalytics,
   RegistrationStatus,
   TaskStatus,
-  FeedbackStatus
+  FeedbackStatus,
+  AuthUser,
+  UserRole
 } from './types';
 
 export const App: React.FC = () => {
-  // 1. Core State
+  // 1. Authentication State
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
+    try {
+      const stored = localStorage.getItem('activia_current_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [authPage, setAuthPage] = useState<'login' | 'register' | 'forgot_password' | 'reset_password' | 'pending_approval' | null>(() => {
+    try {
+      const stored = localStorage.getItem('activia_current_user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u.status === 'pending_approval') return 'pending_approval';
+        return null; // Authenticated
+      }
+      return 'login';
+    } catch {
+      return 'login';
+    }
+  });
+
+  const [resetParams, setResetParams] = useState<{ identifier?: string; code?: string }>({});
+
+  // 2. Core State
   const [persona, setPersona] = useState<UserPersona>(activiaStore.getCurrentPersona());
   const [settings, setSettings] = useState<SchoolSettings>(activiaStore.getSettings());
   const [activities, setActivities] = useState<Activity[]>(activiaStore.getActivities());
@@ -61,7 +96,7 @@ export const App: React.FC = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(activiaStore.getAuditLogs());
   const [analytics, setAnalytics] = useState<AdminAnalytics>(activiaStore.getAdminAnalytics());
 
-  // 2. Navigation & UI State
+  // 3. Navigation & UI State
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
@@ -69,7 +104,7 @@ export const App: React.FC = () => {
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [categoryFilterForDiscovery, setCategoryFilterForDiscovery] = useState<string>('all');
 
-  // Sync theme with html document element
+  // Sync theme
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.remove('light');
@@ -80,6 +115,79 @@ export const App: React.FC = () => {
     }
   }, [isDarkMode]);
 
+  // Handle active user persona sync
+  useEffect(() => {
+    if (currentUser) {
+      let mappedPersona = 'student_alex';
+      if (currentUser.role === 'admin' || currentUser.role === 'coordinator') {
+        mappedPersona = 'admin_eleanor';
+      } else if (currentUser.role === 'editor' || currentUser.role === 'teacher') {
+        mappedPersona = 'teacher_robert';
+      }
+
+      const p = activiaStore.switchPersona(mappedPersona);
+      p.name = currentUser.fullName;
+      p.email = currentUser.email;
+      p.role = currentUser.role;
+      p.id = String(currentUser.id);
+      setPersona({ ...p });
+    }
+  }, [currentUser]);
+
+  // Auth Handler: Login Success & Role Redirection
+  const handleLoginSuccess = (user: AuthUser, token?: string) => {
+    setCurrentUser(user);
+    try {
+      localStorage.setItem('activia_current_user', JSON.stringify(user));
+      if (token) localStorage.setItem('activia_auth_token', token);
+    } catch {}
+
+    if (user.status === 'pending_approval') {
+      setAuthPage('pending_approval');
+      return;
+    }
+
+    setAuthPage(null);
+
+    // Role-based redirection:
+    // Admin -> Admin dashboard ('admin_command')
+    // Editor -> Teacher dashboard ('staff_overview')
+    // Viewer -> Student dashboard ('dashboard')
+    if (user.role === 'admin' || user.role === 'coordinator') {
+      setActiveTab('admin_command');
+    } else if (user.role === 'editor' || user.role === 'teacher') {
+      setActiveTab('staff_overview');
+    } else {
+      setActiveTab('dashboard');
+    }
+  };
+
+  // Auth Handler: Logout
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    try {
+      localStorage.removeItem('activia_current_user');
+      localStorage.removeItem('activia_auth_token');
+    } catch {}
+    setCurrentUser(null);
+    setAuthPage('login');
+  };
+
+  // Re-check status for pending approval
+  const handleRefreshApprovalStatus = async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user && data.user.status === 'active') {
+          handleLoginSuccess(data.user);
+        }
+      }
+    } catch {}
+  };
+
   // Sync persona updates
   const handleSwitchPersona = (personaId: string) => {
     const updated = activiaStore.switchPersona(personaId);
@@ -88,12 +196,12 @@ export const App: React.FC = () => {
     setAuditLogs(activiaStore.getAuditLogs());
 
     // Switch default tab appropriately
-    if (updated.role === 'student') {
-      setActiveTab('dashboard');
-    } else if (updated.role === 'teacher') {
+    if (updated.role === 'admin' || updated.role === 'coordinator') {
+      setActiveTab('admin_command');
+    } else if (updated.role === 'editor' || updated.role === 'teacher') {
       setActiveTab('staff_overview');
     } else {
-      setActiveTab('admin_command');
+      setActiveTab('dashboard');
     }
   };
 
@@ -112,12 +220,6 @@ export const App: React.FC = () => {
     setAuditLogs([...activiaStore.getAuditLogs()]);
     setAnalytics({ ...activiaStore.getAdminAnalytics() });
     setSettings({ ...activiaStore.getSettings() });
-  };
-
-  // Activity click from 3D Galaxy
-  const handleGalaxySelectCategory = (categoryId: string) => {
-    setCategoryFilterForDiscovery(categoryId);
-    setActiveTab('activities');
   };
 
   // Submit registration handler
@@ -230,6 +332,87 @@ export const App: React.FC = () => {
   const pendingApprovalsCount = registrations.filter(r => r.status === 'pending_teacher_approval').length;
   const unreadAnnouncementsCount = announcements.filter(a => !a.isRead).length;
 
+  // Active user role
+  const userRole: UserRole = currentUser?.role || persona.role;
+  const isAdmin = userRole === 'admin' || userRole === 'coordinator';
+  const isEditor = userRole === 'editor' || userRole === 'teacher';
+  const isViewer = !isAdmin && !isEditor;
+
+  // Check role authorization for current tab
+  const isTabAuthorized = (): boolean => {
+    // Admin only tabs
+    if (['admin_command', 'admin_users', 'admin_analytics', 'admin_audit', 'admin_settings'].includes(activeTab)) {
+      return isAdmin;
+    }
+    // Teacher/Editor only tabs
+    if (['staff_overview', 'staff_approvals', 'staff_activities', 'staff_teams', 'staff_attendance'].includes(activeTab)) {
+      return isAdmin || isEditor;
+    }
+    return true; // General tabs (dashboard, activities, competitions, calendar, announcements, applications, achievements, settings)
+  };
+
+  // ----------------------------------------------------
+  // UN-AUTHENTICATED ROUTING: Authentication Pages
+  // ----------------------------------------------------
+  if (authPage === 'register') {
+    return (
+      <RegisterPage
+        onRegisterSuccess={() => setAuthPage('login')}
+        onNavigateToLogin={() => setAuthPage('login')}
+        schoolName={settings.schoolName}
+      />
+    );
+  }
+
+  if (authPage === 'forgot_password') {
+    return (
+      <ForgotPasswordPage
+        onNavigateToLogin={() => setAuthPage('login')}
+        onNavigateToReset={(id, code) => {
+          setResetParams({ identifier: id, code });
+          setAuthPage('reset_password');
+        }}
+        schoolName={settings.schoolName}
+      />
+    );
+  }
+
+  if (authPage === 'reset_password') {
+    return (
+      <ResetPasswordPage
+        initialIdentifier={resetParams.identifier}
+        initialCode={resetParams.code}
+        onNavigateToLogin={() => setAuthPage('login')}
+        schoolName={settings.schoolName}
+      />
+    );
+  }
+
+  if (authPage === 'pending_approval' || (currentUser && currentUser.status === 'pending_approval')) {
+    return (
+      <PendingApprovalPage
+        user={currentUser || undefined}
+        onRefresh={handleRefreshApprovalStatus}
+        onLogout={handleLogout}
+        schoolName={settings.schoolName}
+      />
+    );
+  }
+
+  if (authPage === 'login' || !currentUser) {
+    return (
+      <LoginPage
+        onLoginSuccess={handleLoginSuccess}
+        onNavigateToRegister={() => setAuthPage('register')}
+        onNavigateToForgotPassword={() => setAuthPage('forgot_password')}
+        schoolName={settings.schoolName}
+      />
+    );
+  }
+
+  // ----------------------------------------------------
+  // AUTHENTICATED DASHBOARD APPLICATION SHELL
+  // ----------------------------------------------------
   return (
     <div className="min-h-screen bg-[#F7F9FC] text-[#172033] flex flex-col font-sans transition-colors duration-200">
       {/* 1. Global Navbar */}
@@ -245,13 +428,14 @@ export const App: React.FC = () => {
         onOpenSearch={() => setSearchModalOpen(true)}
         activeTab={activeTab}
         onNavigate={setActiveTab}
+        onLogout={handleLogout}
       />
 
       {/* 2. Main Dashboard Shell (Sidebar + Content View) */}
       <div className="flex-1 flex overflow-hidden">
         {/* Collapsible Role-Aware Sidebar */}
         <Sidebar
-          role={persona.role}
+          role={userRole}
           activeTab={activeTab}
           onNavigate={setActiveTab}
           collapsed={sidebarCollapsed}
@@ -263,228 +447,210 @@ export const App: React.FC = () => {
 
         {/* Dynamic Main Workspace Container */}
         <main className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 max-w-7xl mx-auto w-full">
-          {/* TAB: Dashboard View (Role Adaptive) */}
-          {activeTab === 'dashboard' && (
-            persona.role === 'teacher' ? (
-              <TeacherDashboard
-                persona={persona}
-                activities={activities}
-                registrations={registrations}
-                teams={teams}
-                tasks={tasks}
-                onUpdateRegistrationStatus={handleUpdateRegistrationStatus}
-                onCreateActivity={handleCreateActivity}
-                onNavigate={setActiveTab}
-              />
-            ) : persona.role === 'admin' ? (
-              <AdminCommandCentre
-                analytics={analytics}
-                settings={settings}
-                auditLogs={auditLogs}
-                venues={venues}
-                feedbackTickets={feedbackTickets}
-                persona={persona}
-                onUpdateSettings={handleUpdateSettings}
-                onPostAnnouncement={handlePostAnnouncement}
-                onUpdateFeedbackStatus={handleUpdateFeedbackStatus}
-                onExportCsv={handleExportCsv}
-              />
-            ) : (
-              <StudentDashboard
-                persona={persona}
-                activities={activities}
-                registrations={registrations}
-                tasks={tasks}
-                achievements={achievements}
-                announcements={announcements}
-                feedbackTickets={feedbackTickets}
-                onNavigate={setActiveTab}
-                onSelectActivity={setSelectedActivity}
-              />
-            )
-          )}
-
-          {/* TAB: 3D Activity Galaxy */}
-          {activeTab === 'galaxy' && (
-            <div className="space-y-4">
-              <div className="bg-white rounded-xl border border-app-border p-5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-app-brand">
-                  Signature 3D Environment
-                </span>
-                <h2 className="text-xl font-bold font-display text-app-text mt-0.5">
-                  Activity Galaxy Hub
-                </h2>
-                <p className="text-xs text-app-muted mt-1">
-                  Explore 8 planetary sectors representing STEM, Science, Sports, Arts, Debate, Leadership, Community Service, and Clubs.
-                </p>
-              </div>
-
-              <ActivityGalaxy
-                activities={activities}
-                onSelectCategory={handleGalaxySelectCategory}
-                onSelectActivity={setSelectedActivity}
-              />
-            </div>
-          )}
-
-          {/* TAB: 3D Miniature Campus Map */}
-          {activeTab === 'campus' && (
-            <div className="space-y-4">
-              <div className="bg-white rounded-xl border border-app-border p-5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-app-accent">
-                  Interactive Campus Geography
-                </span>
-                <h2 className="text-xl font-bold font-display text-app-text mt-0.5">
-                  3D Miniature School Campus
-                </h2>
-                <p className="text-xs text-app-muted mt-1">
-                  Click on campus buildings to inspect resident clubs, scheduled events, and facility capacity.
-                </p>
-              </div>
-
-              <CampusView
-                activities={activities}
-                clubs={clubs}
-                onSelectActivity={setSelectedActivity}
-              />
-            </div>
-          )}
-
-          {/* TAB: Activity Discovery Centre */}
-          {activeTab === 'activities' && (
-            <ActivityDiscovery
-              activities={activities}
-              registrations={registrations}
-              persona={persona}
-              onSelectActivity={setSelectedActivity}
-              selectedCategoryFilter={categoryFilterForDiscovery}
-              onClearCategoryFilter={() => setCategoryFilterForDiscovery('all')}
+          {/* Authorization Guard: Access Denied check */}
+          {!isTabAuthorized() ? (
+            <AccessDeniedPage
+              currentRole={userRole}
+              requiredRole={
+                ['admin_command', 'admin_users', 'admin_analytics', 'admin_audit', 'admin_settings'].includes(activeTab)
+                  ? 'Admin — Principal'
+                  : 'Editor — Teacher'
+              }
+              attemptedSection={activeTab.replace('_', ' ')}
+              onReturnToDashboard={() => {
+                if (isAdmin) setActiveTab('admin_command');
+                else if (isEditor) setActiveTab('staff_overview');
+                else setActiveTab('dashboard');
+              }}
             />
-          )}
+          ) : (
+            <>
+              {/* TAB: Home / Overview Dashboard View (Role Adaptive) */}
+              {(activeTab === 'dashboard' || activeTab === 'home') && (
+                isAdmin ? (
+                  <AdminCommandCentre
+                    analytics={analytics}
+                    settings={settings}
+                    auditLogs={auditLogs}
+                    venues={venues}
+                    feedbackTickets={feedbackTickets}
+                    persona={persona}
+                    onUpdateSettings={handleUpdateSettings}
+                    onPostAnnouncement={handlePostAnnouncement}
+                    onUpdateFeedbackStatus={handleUpdateFeedbackStatus}
+                    onExportCsv={handleExportCsv}
+                  />
+                ) : isEditor ? (
+                  <TeacherDashboard
+                    persona={persona}
+                    activities={activities}
+                    registrations={registrations}
+                    teams={teams}
+                    tasks={tasks}
+                    onUpdateRegistrationStatus={handleUpdateRegistrationStatus}
+                    onCreateActivity={handleCreateActivity}
+                    onNavigate={setActiveTab}
+                  />
+                ) : (
+                  <StudentDashboard
+                    persona={persona}
+                    activities={activities}
+                    registrations={registrations}
+                    tasks={tasks}
+                    achievements={achievements}
+                    announcements={announcements}
+                    feedbackTickets={feedbackTickets}
+                    onNavigate={setActiveTab}
+                    onSelectActivity={setSelectedActivity}
+                  />
+                )
+              )}
 
-          {/* TAB: Competitions & Teams */}
-          {activeTab === 'competitions' && (
-            <CompetitionWorkspace
-              teams={teams}
-              tasks={tasks}
-              registrations={registrations}
-              activities={activities}
-              studentName={persona.name}
-              studentId={persona.id}
-              onJoinTeamByCode={handleJoinTeamByCode}
-              onCreateTask={handleCreateTask}
-              onUpdateTaskStatus={handleUpdateTaskStatus}
-              onSelectActivity={setSelectedActivity}
-            />
-          )}
+              {/* TAB: Admin User Management (Principal Only) */}
+              {activeTab === 'admin_users' && isAdmin && (
+                <UserManagementView
+                  currentAdminId={currentUser.id}
+                  onNavigate={setActiveTab}
+                />
+              )}
 
-          {/* TAB: Clubs & House Standings */}
-          {activeTab === 'clubs' && (
-            <ClubsDirectory
-              clubs={clubs}
-              houses={houses}
-              onToggleMembership={handleToggleClubMembership}
-              onNavigate={setActiveTab}
-            />
-          )}
+              {/* TAB: Activity Discovery Centre */}
+              {activeTab === 'activities' && (
+                <ActivityDiscovery
+                  activities={activities}
+                  registrations={registrations}
+                  persona={persona}
+                  onSelectActivity={setSelectedActivity}
+                  selectedCategoryFilter={categoryFilterForDiscovery}
+                  onClearCategoryFilter={() => setCategoryFilterForDiscovery('all')}
+                />
+              )}
 
-          {/* TAB: Academic & Event Calendar */}
-          {activeTab === 'calendar' && (
-            <CalendarView
-              events={calendarEvents}
-              venues={venues}
-              onSelectEvent={() => {}}
-            />
-          )}
+              {/* TAB: Competitions & Teams */}
+              {activeTab === 'competitions' && (
+                <CompetitionWorkspace
+                  teams={teams}
+                  tasks={tasks}
+                  registrations={registrations}
+                  activities={activities}
+                  studentName={persona.name}
+                  studentId={persona.id}
+                  onJoinTeamByCode={handleJoinTeamByCode}
+                  onCreateTask={handleCreateTask}
+                  onUpdateTaskStatus={handleUpdateTaskStatus}
+                  onSelectActivity={setSelectedActivity}
+                />
+              )}
 
-          {/* TAB: Announcements & Q&A */}
-          {activeTab === 'announcements' && (
-            <AnnouncementsBoard
-              announcements={announcements}
-              onMarkAsRead={handleMarkAnnouncementRead}
-              studentName={persona.name}
-            />
-          )}
+              {/* TAB: Clubs & House Standings */}
+              {activeTab === 'clubs' && (
+                <ClubsDirectory
+                  clubs={clubs}
+                  houses={houses}
+                  onToggleMembership={handleToggleClubMembership}
+                  onNavigate={setActiveTab}
+                />
+              )}
 
-          {/* TAB: My Applications & Review Applications */}
-          {activeTab === 'applications' && (
-            <ApplicationsView
-              registrations={registrations}
-              persona={persona}
-              activities={activities}
-              onUpdateStatus={handleUpdateRegistrationStatus}
-              onSelectActivity={setSelectedActivity}
-              onNavigate={setActiveTab}
-            />
-          )}
+              {/* TAB: Academic & Event Calendar */}
+              {activeTab === 'calendar' && (
+                <CalendarView
+                  events={calendarEvents}
+                  venues={venues}
+                  onSelectEvent={() => {}}
+                />
+              )}
 
-          {/* TAB: Achievement Portfolio */}
-          {activeTab === 'achievements' && (
-            <AchievementPortfolio
-              achievements={achievements}
-              persona={persona}
-            />
-          )}
+              {/* TAB: Announcements & Q&A */}
+              {activeTab === 'announcements' && (
+                <AnnouncementsBoard
+                  announcements={announcements}
+                  onMarkAsRead={handleMarkAnnouncementRead}
+                  studentName={persona.name}
+                />
+              )}
 
-          {/* TAB: Institutional Resources & Handbooks */}
-          {activeTab === 'resources' && (
-            <ResourcesView />
-          )}
+              {/* TAB: Applications & Approvals */}
+              {activeTab === 'applications' && (
+                <ApplicationsView
+                  registrations={registrations}
+                  persona={persona}
+                  activities={activities}
+                  onUpdateStatus={handleUpdateRegistrationStatus}
+                  onSelectActivity={setSelectedActivity}
+                  onNavigate={setActiveTab}
+                />
+              )}
 
-          {/* TAB: Help & Support / Student Voice */}
-          {(activeTab === 'support' || activeTab === 'feedback') && (
-            <StudentVoiceFeedback
-              tickets={feedbackTickets}
-              persona={persona}
-              onSubmitTicket={handleSubmitFeedback}
-            />
-          )}
+              {/* TAB: Achievement Portfolio (Viewer) */}
+              {activeTab === 'achievements' && (
+                <AchievementPortfolio
+                  achievements={achievements}
+                  persona={persona}
+                />
+              )}
 
-          {/* TAB: Settings */}
-          {activeTab === 'settings' && (
-            <SettingsView
-              persona={persona}
-              settings={settings}
-              onUpdateSettings={handleUpdateSettings}
-            />
-          )}
+              {/* TAB: Institutional Resources */}
+              {activeTab === 'resources' && (
+                <ResourcesView />
+              )}
 
-          {/* TAB: Staff / Faculty Workspace */}
-          {(activeTab === 'staff_overview' ||
-            activeTab === 'staff_approvals' ||
-            activeTab === 'staff_activities' ||
-            activeTab === 'staff_teams' ||
-            activeTab === 'staff_attendance') && (
-            <TeacherDashboard
-              persona={persona}
-              activities={activities}
-              registrations={registrations}
-              teams={teams}
-              tasks={tasks}
-              onUpdateRegistrationStatus={handleUpdateRegistrationStatus}
-              onCreateActivity={handleCreateActivity}
-              onNavigate={setActiveTab}
-            />
-          )}
+              {/* TAB: Help and Support */}
+              {(activeTab === 'support' || activeTab === 'feedback') && (
+                <StudentVoiceFeedback
+                  tickets={feedbackTickets}
+                  persona={persona}
+                  onSubmitTicket={handleSubmitFeedback}
+                />
+              )}
 
-          {/* TAB: Administrator Directorate */}
-          {(activeTab === 'admin_command' ||
-            activeTab === 'admin_analytics' ||
-            activeTab === 'admin_venues' ||
-            activeTab === 'admin_settings' ||
-            activeTab === 'admin_audit') && (
-            <AdminCommandCentre
-              analytics={analytics}
-              settings={settings}
-              auditLogs={auditLogs}
-              venues={venues}
-              feedbackTickets={feedbackTickets}
-              persona={persona}
-              onUpdateSettings={handleUpdateSettings}
-              onPostAnnouncement={handlePostAnnouncement}
-              onUpdateFeedbackStatus={handleUpdateFeedbackStatus}
-              onExportCsv={handleExportCsv}
-            />
+              {/* TAB: Settings & My Profile */}
+              {activeTab === 'settings' && (
+                <SettingsView
+                  persona={persona}
+                  settings={settings}
+                  onUpdateSettings={handleUpdateSettings}
+                />
+              )}
+
+              {/* TAB: Staff / Faculty Workspace (Editor & Admin) */}
+              {(activeTab === 'staff_overview' ||
+                activeTab === 'staff_approvals' ||
+                activeTab === 'staff_activities' ||
+                activeTab === 'staff_teams' ||
+                activeTab === 'staff_attendance') && (
+                <TeacherDashboard
+                  persona={persona}
+                  activities={activities}
+                  registrations={registrations}
+                  teams={teams}
+                  tasks={tasks}
+                  onUpdateRegistrationStatus={handleUpdateRegistrationStatus}
+                  onCreateActivity={handleCreateActivity}
+                  onNavigate={setActiveTab}
+                />
+              )}
+
+              {/* TAB: Administrator Directorate & Reports (Admin Only) */}
+              {(activeTab === 'admin_command' ||
+                activeTab === 'admin_analytics' ||
+                activeTab === 'admin_venues' ||
+                activeTab === 'admin_settings' ||
+                activeTab === 'admin_audit') && (
+                <AdminCommandCentre
+                  analytics={analytics}
+                  settings={settings}
+                  auditLogs={auditLogs}
+                  venues={venues}
+                  feedbackTickets={feedbackTickets}
+                  persona={persona}
+                  onUpdateSettings={handleUpdateSettings}
+                  onPostAnnouncement={handlePostAnnouncement}
+                  onUpdateFeedbackStatus={handleUpdateFeedbackStatus}
+                  onExportCsv={handleExportCsv}
+                />
+              )}
+            </>
           )}
         </main>
       </div>

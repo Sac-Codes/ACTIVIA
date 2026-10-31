@@ -1,12 +1,38 @@
 // ACTIVIA | School Activity Universe - TypeScript Definitions
 
-export type UserRole = 'student' | 'teacher' | 'coordinator' | 'admin';
+export type UserRole = 'admin' | 'editor' | 'viewer' | 'student' | 'teacher' | 'coordinator';
+
+export type UserAccountStatus = 'active' | 'pending_approval' | 'suspended';
+
+export const ROLE_LABELS: Record<string, string> = {
+  admin: 'Admin — Principal',
+  editor: 'Editor — Teacher',
+  viewer: 'Viewer — Student',
+  student: 'Viewer — Student',
+  teacher: 'Editor — Teacher',
+  coordinator: 'Admin — Principal',
+};
+
+export interface AuthUser {
+  id: number | string;
+  username: string;
+  fullName: string;
+  email: string;
+  role: UserRole;
+  status: UserAccountStatus;
+  grade?: string;
+  className?: string;
+  stream?: string;
+  studentId?: string;
+  house?: string;
+}
 
 export interface UserPersona {
   id: string;
   name: string;
   email: string;
   role: UserRole;
+  status?: UserAccountStatus;
   avatar: string;
   grade?: string;       // e.g. "Grade 11"
   section?: string;     // e.g. "Section A"

@@ -44,70 +44,63 @@ export const Sidebar: React.FC<SidebarProps> = ({
   schoolName = 'ACTIVIA Hub',
 }) => {
   // Navigation structure adhering strictly to specification
-  const studentNavItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  const viewerNavItems = [
+    { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
     { id: 'activities', label: 'Discover Activities', icon: Compass },
     { id: 'competitions', label: 'Competitions', icon: Trophy },
-    { id: 'clubs', label: 'Clubs and Societies', icon: Users },
     { id: 'calendar', label: 'Events Calendar', icon: Calendar },
     { id: 'announcements', label: 'Announcements', icon: Bell, badge: unreadAnnouncementsCount },
-    { id: 'achievements', label: 'My Achievements', icon: Award },
     { id: 'applications', label: 'My Applications', icon: FileCheck2 },
-    { id: 'resources', label: 'Resources', icon: FileText },
-    { id: 'support', label: 'Help and Support', icon: HelpCircle },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'achievements', label: 'My Achievements', icon: Award },
+    { id: 'settings', label: 'My Profile', icon: Settings },
   ];
 
-  const teacherNavItems = [
-    { id: 'staff_overview', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'activities', label: 'Discover Activities', icon: Compass },
-    { id: 'applications', label: 'Review Applications', icon: FileCheck2, badge: pendingApprovalsCount },
-    { id: 'competitions', label: 'Competitions & Teams', icon: Trophy },
-    { id: 'clubs', label: 'Clubs and Societies', icon: Users },
-    { id: 'calendar', label: 'Events Calendar', icon: Calendar },
+  const editorNavItems = [
+    { id: 'staff_overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'activities', label: 'Manage Activities', icon: Compass },
+    { id: 'competitions', label: 'Manage Competitions', icon: Trophy },
+    { id: 'calendar', label: 'Events', icon: Calendar },
+    { id: 'clubs', label: 'Clubs', icon: Users },
     { id: 'announcements', label: 'Announcements', icon: Bell },
-    { id: 'resources', label: 'Resources', icon: FileText },
-    { id: 'support', label: 'Help and Support', icon: HelpCircle },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'applications', label: 'Student Applications', icon: FileCheck2, badge: pendingApprovalsCount },
+    { id: 'settings', label: 'My Profile', icon: Settings },
   ];
 
   const adminNavItems = [
-    { id: 'admin_command', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'admin_analytics', label: 'Participation Analytics', icon: BarChart3 },
-    { id: 'activities', label: 'Discover Activities', icon: Compass },
-    { id: 'applications', label: 'School Applications', icon: FileCheck2, badge: pendingApprovalsCount },
+    { id: 'admin_command', label: 'Overview', icon: LayoutDashboard },
+    { id: 'admin_users', label: 'User Management', icon: Users },
+    { id: 'activities', label: 'Activities', icon: Compass },
     { id: 'competitions', label: 'Competitions', icon: Trophy },
-    { id: 'clubs', label: 'Clubs and Societies', icon: Users },
-    { id: 'calendar', label: 'Events Calendar', icon: Calendar },
+    { id: 'clubs', label: 'Clubs and Events', icon: Users },
     { id: 'announcements', label: 'Announcements', icon: Bell },
-    { id: 'resources', label: 'Resources', icon: FileText },
-    { id: 'support', label: 'Help and Support', icon: HelpCircle },
-    { id: 'admin_audit', label: 'Audit Trail', icon: ScrollText },
+    { id: 'applications', label: 'Registrations & Applications', icon: FileCheck2, badge: pendingApprovalsCount },
+    { id: 'admin_analytics', label: 'Reports and Analytics', icon: BarChart3 },
     { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'admin_audit', label: 'Audit Logs', icon: ScrollText },
   ];
 
-  let currentItems = studentNavItems;
-  if (role === 'teacher') currentItems = teacherNavItems;
-  else if (role === 'coordinator' || role === 'admin') currentItems = adminNavItems;
+  let currentItems = viewerNavItems;
+  if (role === 'editor' || role === 'teacher') currentItems = editorNavItems;
+  else if (role === 'admin' || role === 'coordinator') currentItems = adminNavItems;
 
   const getRoleBadge = () => {
-    if (role === 'admin') {
+    if (role === 'admin' || role === 'coordinator') {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
-          <Shield className="w-3 h-3" /> Administrator
+          <Shield className="w-3 h-3" /> Admin — Principal
         </span>
       );
     }
-    if (role === 'teacher') {
+    if (role === 'editor' || role === 'teacher') {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-teal-50 text-teal-700 border border-teal-100">
-          <Briefcase className="w-3 h-3" /> Faculty Mentor
+          <Briefcase className="w-3 h-3" /> Editor — Teacher
         </span>
       );
     }
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">
-        <GraduationCap className="w-3 h-3" /> Student Life
+        <GraduationCap className="w-3 h-3" /> Viewer — Student
       </span>
     );
   };

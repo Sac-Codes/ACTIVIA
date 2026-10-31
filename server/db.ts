@@ -86,10 +86,17 @@ export function initSchema(db: DatabaseSync): void {
       password_hash TEXT NOT NULL,
       full_name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
-      role TEXT NOT NULL CHECK(role IN ('student', 'teacher', 'admin', 'coordinator')) DEFAULT 'student',
+      role TEXT NOT NULL CHECK(role IN ('admin', 'editor', 'viewer', 'student', 'teacher', 'coordinator')) DEFAULT 'viewer',
+      status TEXT NOT NULL CHECK(status IN ('active', 'pending_approval', 'suspended')) DEFAULT 'active',
       grade TEXT DEFAULT NULL,
+      class_name TEXT DEFAULT NULL,
+      stream TEXT DEFAULT NULL,
+      student_id TEXT DEFAULT NULL,
       house TEXT DEFAULT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      reset_token TEXT DEFAULT NULL,
+      reset_token_expiry TEXT DEFAULT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
     CREATE TABLE IF NOT EXISTS registrations (
@@ -189,4 +196,68 @@ export function initSchema(db: DatabaseSync): void {
     CREATE INDEX IF NOT EXISTS idx_registrations_activity ON registrations(activity_id);
     CREATE INDEX IF NOT EXISTS idx_announcements_created ON announcements(created_at);
   `);
+
+  // Safe migration check for existing users table
+  try {
+    const userColumns = db.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;
+    const columnNames = userColumns.map(c => c.name);
+
+    if (!columnNames.includes('status')) {
+      db.exec("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active'");
+    }
+    if (!columnNames.includes('class_name')) {
+      db.exec("ALTER TABLE users ADD COLUMN class_name TEXT DEFAULT NULL");
+    }
+    if (!columnNames.includes('stream')) {
+      db.exec("ALTER TABLE users ADD COLUMN stream TEXT DEFAULT NULL");
+    }
+    if (!columnNames.includes('student_id')) {
+      db.exec("ALTER TABLE users ADD COLUMN student_id TEXT DEFAULT NULL");
+    }
+    if (!columnNames.includes('reset_token')) {
+      db.exec("ALTER TABLE users ADD COLUMN reset_token TEXT DEFAULT NULL");
+    }
+    if (!columnNames.includes('reset_token_expiry')) {
+      db.exec("ALTER TABLE users ADD COLUMN reset_token_expiry TEXT DEFAULT NULL");
+    }
+    if (!columnNames.includes('updated_at')) {
+      db.exec("ALTER TABLE users ADD COLUMN updated_at TEXT DEFAULT (datetime('now'))");
+    }
+
+    // Check if role CHECK constraint allows 'viewer'
+    const userTableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get() as { sql: string } | undefined;
+    if (userTableInfo && !userTableInfo.sql.includes("'viewer'")) {
+      db.exec("PRAGMA foreign_keys = OFF;");
+      db.exec(`
+        CREATE TABLE users_migrated (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT NOT NULL UNIQUE,
+          password_hash TEXT NOT NULL,
+          full_name TEXT NOT NULL,
+          email TEXT NOT NULL UNIQUE,
+          role TEXT NOT NULL CHECK(role IN ('admin', 'editor', 'viewer', 'student', 'teacher', 'coordinator')) DEFAULT 'viewer',
+          status TEXT NOT NULL CHECK(status IN ('active', 'pending_approval', 'suspended')) DEFAULT 'active',
+          grade TEXT DEFAULT NULL,
+          class_name TEXT DEFAULT NULL,
+          stream TEXT DEFAULT NULL,
+          student_id TEXT DEFAULT NULL,
+          house TEXT DEFAULT NULL,
+          reset_token TEXT DEFAULT NULL,
+          reset_token_expiry TEXT DEFAULT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT OR IGNORE INTO users_migrated (id, username, password_hash, full_name, email, role, status, grade, house, created_at)
+        SELECT id, username, password_hash, full_name, email,
+          CASE role WHEN 'student' THEN 'viewer' WHEN 'teacher' THEN 'editor' ELSE role END,
+          COALESCE(status, 'active'), grade, house, created_at
+        FROM users;
+        DROP TABLE users;
+        ALTER TABLE users_migrated RENAME TO users;
+        PRAGMA foreign_keys = ON;
+      `);
+    }
+  } catch (migErr) {
+    // Migration handled
+  }
 }

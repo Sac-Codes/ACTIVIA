@@ -26,7 +26,6 @@ after(async () => {
   if (server) {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
-  process.exit(0);
 });
 
 describe('CampusFlow Automated Test Suite', () => {
@@ -268,6 +267,169 @@ describe('CampusFlow Automated Test Suite', () => {
     assert(data.logs.length >= 3);
     const actions = data.logs.map((l: any) => l.action);
     assert(actions.includes('LOGIN') || actions.includes('CREATE') || actions.includes('UPDATE') || actions.includes('DELETE'));
+  });
+
+  test('13. Student Self-Registration: Registers student and strictly assigns Viewer role', async () => {
+    const res = await fetch(`${baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fullName: 'Jordan Taylor',
+        email: 'jordan.taylor@school.edu',
+        username: 'jordan.taylor',
+        password: 'ValidPassword2026!',
+        confirmPassword: 'ValidPassword2026!',
+        className: 'Grade 11',
+        stream: 'Science & Technology',
+        studentId: 'STU-2026-7788',
+        role: 'admin' // Attempting privilege escalation to admin!
+      }),
+    });
+
+    assert.strictEqual(res.status, 201);
+    const data = await res.json();
+    assert.strictEqual(data.user.username, 'jordan.taylor');
+    assert.strictEqual(data.user.role, 'viewer', 'Self-registration must strictly assign Viewer role regardless of request payload!');
+  });
+
+  test('14. Duplicate Registration Prevention: Rejects already registered username and email', async () => {
+    const res = await fetch(`${baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fullName: 'Jordan Taylor Duplicate',
+        email: 'jordan.taylor@school.edu',
+        username: 'jordan.taylor.new',
+        password: 'ValidPassword2026!',
+        confirmPassword: 'ValidPassword2026!',
+      }),
+    });
+
+    assert.strictEqual(res.status, 409, 'Duplicate email must be rejected with 409 Conflict');
+  });
+
+  test('15. Role-Based Login: Returns correct roles for Admin, Editor, and Viewer accounts', async () => {
+    // 1. Admin login
+    const adminRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'admin', password: 'CampusFlow2026!' }),
+    });
+    assert.strictEqual(adminRes.status, 200);
+    const adminData = await adminRes.json();
+    assert.strictEqual(adminData.user.role, 'admin');
+
+    // 2. Editor (Teacher) login
+    const teacherRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'teacher', password: 'CampusFlow2026!' }),
+    });
+    assert.strictEqual(teacherRes.status, 200);
+    const teacherData = await teacherRes.json();
+    assert.strictEqual(teacherData.user.role, 'editor');
+
+    // 3. Viewer (Student) login
+    const studentRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'student', password: 'CampusFlow2026!' }),
+    });
+    assert.strictEqual(studentRes.status, 200);
+    const studentData = await studentRes.json();
+    assert.strictEqual(studentData.user.role, 'viewer');
+  });
+
+  test('16. Password Recovery & Reset Flow: Generates code and updates password hash', async () => {
+    // A. Request code
+    const forgotRes = await fetch(`${baseUrl}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emailOrUsername: 'student' }),
+    });
+    assert.strictEqual(forgotRes.status, 200);
+    const forgotData = await forgotRes.json();
+    assert(forgotData.recoveryCode, 'Recovery code must be returned');
+
+    // B. Reset password
+    const resetRes = await fetch(`${baseUrl}/api/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        emailOrUsername: 'student',
+        token: forgotData.recoveryCode,
+        newPassword: 'BrandNewPassword2026!',
+        confirmPassword: 'BrandNewPassword2026!',
+      }),
+    });
+    assert.strictEqual(resetRes.status, 200);
+
+    // C. Verify login with new password
+    const loginRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'student', password: 'BrandNewPassword2026!' }),
+    });
+    assert.strictEqual(loginRes.status, 200);
+  });
+
+  test('17. User Management Access Controls: Admin allowed, non-admin blocked', async () => {
+    // Admin request
+    const adminReq = await fetch(`${baseUrl}/api/users`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` },
+    });
+    assert.strictEqual(adminReq.status, 200);
+    const usersData = await adminReq.json();
+    assert(Array.isArray(usersData.users));
+
+    // Viewer token
+    const studentLogin = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'jordan.taylor', password: 'ValidPassword2026!' }),
+    });
+    const studentToken = (await studentLogin.json()).token;
+
+    // Student attempting to access User Management
+    const studentReq = await fetch(`${baseUrl}/api/users`, {
+      headers: { 'Authorization': `Bearer ${studentToken}` },
+    });
+    assert.strictEqual(studentReq.status, 403, 'Students must be blocked from User Management API with 403 Forbidden!');
+  });
+
+  test('18. Account Suspension Enforcement: Suspended user is barred from signing in', async () => {
+    // 1. Admin suspends user #2 (teacher)
+    const suspendRes = await fetch(`${baseUrl}/api/users/2/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({ status: 'suspended' }),
+    });
+    if (suspendRes.status !== 200) {
+      console.log('SUSPEND ERROR RESPONSE:', await suspendRes.text());
+    }
+    assert.strictEqual(suspendRes.status, 200);
+
+    // 2. Suspended user attempts login
+    const loginAttempt = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'teacher', password: 'CampusFlow2026!' }),
+    });
+    assert.strictEqual(loginAttempt.status, 403, 'Suspended user must be blocked with 403 Forbidden!');
+
+    // 3. Reactivate user for future operations
+    const reactivateRes = await fetch(`${baseUrl}/api/users/2/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({ status: 'active' }),
+    });
+    assert.strictEqual(reactivateRes.status, 200);
   });
 
 });

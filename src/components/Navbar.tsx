@@ -31,6 +31,7 @@ interface NavbarProps {
   activeTab: string;
   onNavigate: (tab: string) => void;
   onOpenCreateActivity?: () => void;
+  onLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -44,6 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onNavigate,
   onOpenCreateActivity,
+  onLogout,
 }) => {
   const [personaMenuOpen, setPersonaMenuOpen] = useState(false);
   const [notifDrawerOpen, setNotifDrawerOpen] = useState(false);
@@ -348,6 +350,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <HelpCircle className="w-3.5 h-3.5 text-app-muted" />
                     <span>Help & Knowledgebase</span>
                   </button>
+
+                  {onLogout && (
+                    <button
+                      onClick={() => {
+                        setPersonaMenuOpen(false);
+                        onLogout();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors text-left border-t border-app-border mt-1 pt-2"
+                    >
+                      <LogOut className="w-3.5 h-3.5 text-red-600" />
+                      <span>Sign Out</span>
+                    </button>
+                  )}
                 </div>
               </div>
             )}
