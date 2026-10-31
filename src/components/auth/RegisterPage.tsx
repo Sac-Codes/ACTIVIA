@@ -1,23 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import {
-  GraduationCap,
-  User,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  CheckCircle2,
-  ShieldAlert,
-  ArrowLeft,
-  ArrowRight,
-  BookOpen,
-  Layers,
-  IdCard,
-  Shield,
-  CheckCheck,
-  XCircle
-} from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, ArrowLeft, AlertCircle, CheckCircle2, Loader2, Check, X } from 'lucide-react';
 import { firebaseRegisterStudent } from '../../lib/firebaseAuth';
+import { AuthIllustration } from './AuthIllustration';
+import './auth.css';
 
 interface RegisterPageProps {
   onRegisterSuccess: () => void;
@@ -27,515 +12,437 @@ interface RegisterPageProps {
 
 type AuthMode = 'firebase' | 'express';
 
-// ── Password strength indicator helper ────────────────────────────────────────
-function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
-  if (!pw) return { score: 0, label: '', color: '' };
-  let score = 0;
-  if (pw.length >= 8) score++;
-  if (pw.length >= 12) score++;
-  if (/[A-Z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  if (score <= 1) return { score, label: 'Weak', color: 'bg-red-500' };
-  if (score <= 2) return { score, label: 'Fair', color: 'bg-amber-500' };
-  if (score <= 3) return { score, label: 'Good', color: 'bg-yellow-500' };
-  if (score <= 4) return { score, label: 'Strong', color: 'bg-emerald-500' };
-  return { score, label: 'Excellent', color: 'bg-green-600' };
+function getPasswordStrength(pw: string) {
+  if (!pw) return 0;
+  let s = 0;
+  if (pw.length >= 8) s++;
+  if (pw.length >= 12) s++;
+  if (/[A-Z]/.test(pw)) s++;
+  if (/[0-9]/.test(pw)) s++;
+  if (/[^A-Za-z0-9]/.test(pw)) s++;
+  return s;
 }
+
+const PW_LABELS = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Excellent'];
+const PW_COLORS = ['', '#DC2626', '#EA580C', '#D97706', '#16A34A', '#15803D'];
+
+interface FieldProps {
+  id: string;
+  label: string;
+  children: React.ReactNode;
+  hint?: string;
+  optional?: boolean;
+}
+
+const Field: React.FC<FieldProps> = ({ id, label, children, hint, optional }) => (
+  <div className="auth-field-group">
+    <label htmlFor={id} className="auth-label">
+      {label}
+      {optional && <span className="auth-label-opt"> — optional</span>}
+    </label>
+    {children}
+    {hint && <p className="auth-hint">{hint}</p>}
+  </div>
+);
 
 export const RegisterPage: React.FC<RegisterPageProps> = ({
   onRegisterSuccess,
   onNavigateToLogin,
-  schoolName = 'ACTIVIA Hub'
 }) => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [className, setClassName] = useState('Grade 10');
   const [stream, setStream] = useState('Science & Technology');
-  const [studentId, setStudentId] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [showCPw, setShowCPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successInfo, setSuccessInfo] = useState<{ message: string; status: string } | null>(null);
-  const [authMode, setAuthMode] = useState<AuthMode>('firebase');
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ message: string } | null>(null);
+  const [authMode, setAuthMode] = useState<AuthMode>('express');
+  const [mounted, setMounted] = useState(false);
 
-  const passwordStrength = getPasswordStrength(password);
-  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
-  const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+  const pwStrength = getPasswordStrength(password);
+  const pwMatch = confirmPassword.length > 0 && password === confirmPassword;
+  const pwMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+
+  const pwChecks = [
+    { label: 'At least 8 characters', met: password.length >= 8 },
+    { label: 'One uppercase letter', met: /[A-Z]/.test(password) },
+    { label: 'One number', met: /[0-9]/.test(password) },
+  ];
 
   useEffect(() => {
-    const mode = (import.meta.env.VITE_AUTH_MODE as AuthMode) || 'firebase';
-    setAuthMode(mode);
+    setMounted(true);
+    setAuthMode((import.meta.env.VITE_AUTH_MODE as AuthMode) || 'express');
   }, []);
 
-  // ── Firebase Registration ────────────────────────────────────────────────
   const handleFirebaseRegister = async () => {
-    try {
-      const result = await firebaseRegisterStudent({
+    const result = await firebaseRegisterStudent({
+      fullName: fullName.trim(),
+      email: email.trim().toLowerCase(),
+      username: username.trim().toLowerCase(),
+      password,
+      className,
+      stream,
+      grade: className,
+    });
+    setSuccess({ message: result.message });
+  };
+
+  const handleExpressRegister = async () => {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         fullName: fullName.trim(),
         email: email.trim().toLowerCase(),
         username: username.trim().toLowerCase(),
         password,
+        confirmPassword,
         className,
         stream,
-        studentId: studentId.trim() || undefined,
-        grade: className,
-      });
-      setSuccessInfo({ message: result.message, status: result.status });
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Registration failed. Please check your information.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ── Express API Registration (fallback) ─────────────────────────────────
-  const handleExpressRegister = async () => {
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fullName: fullName.trim(),
-          email: email.trim().toLowerCase(),
-          username: username.trim().toLowerCase(),
-          password,
-          confirmPassword,
-          className,
-          stream,
-          studentId: studentId.trim() || undefined
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setErrorMessage(data.error || 'Registration failed. Please check your information.');
-        setLoading(false);
-        return;
-      }
-
-      setSuccessInfo({
-        message: data.message || 'Student account created successfully.',
-        status: data.status || 'active'
-      });
-    } catch (err: any) {
-      setErrorMessage('Unable to contact the school server. Please verify your connection.');
-    } finally {
-      setLoading(false);
-    }
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Registration failed. Please check your details.');
+    setSuccess({ message: data.message || 'Account created successfully!' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage(null);
+    setError(null);
 
-    // Validation
-    if (!fullName.trim() || !email.trim() || !username.trim() || !password) {
-      setErrorMessage('Please complete all required fields.');
-      return;
+    if (!fullName.trim()) { setError('Please enter your full name.'); return; }
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Please enter a valid school email address.'); return;
     }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      setErrorMessage('Please enter a valid email address.');
-      return;
+    if (!username.trim() || username.trim().length < 3) {
+      setError('Username must be at least 3 characters.'); return;
     }
-
-    if (password.length < 8) {
-      setErrorMessage('Password must be at least 8 characters long.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setErrorMessage('Password and confirmation password do not match.');
-      return;
-    }
-
-    if (username.trim().length < 3) {
-      setErrorMessage('Username must be at least 3 characters long.');
-      return;
-    }
-
     if (!/^[a-zA-Z0-9._-]+$/.test(username.trim())) {
-      setErrorMessage('Username can only contain letters, numbers, dots, underscores, and hyphens.');
-      return;
+      setError('Username can only contain letters, numbers, dots, underscores, and hyphens.'); return;
     }
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
 
     setLoading(true);
-
-    if (authMode === 'firebase') {
-      await handleFirebaseRegister();
-    } else {
-      await handleExpressRegister();
+    try {
+      if (authMode === 'firebase') {
+        await handleFirebaseRegister();
+      } else {
+        await handleExpressRegister();
+      }
+    } catch (err: any) {
+      setError(err.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // ── Success Screen ────────────────────────────────────────────────────────
-  if (successInfo) {
+  // ── Success screen ─────────────────────────────────────────────────────────
+  if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 flex flex-col justify-center items-center py-12 px-4 font-sans">
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-white/60 shadow-xl shadow-slate-200/60 p-10 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-green-500 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-emerald-200 mb-4">
-            <CheckCircle2 className="w-9 h-9" />
+      <div className="auth-success-page">
+        <div className="auth-success-card">
+          <div className="auth-success-icon-wrap">
+            <CheckCircle2 size={36} />
           </div>
-          <h3 className="text-xl font-bold text-app-text font-display mb-2">
-            {successInfo.status === 'pending_approval' ? 'Enrollment Pending Approval' : 'Registration Complete!'}
-          </h3>
-          <p className="text-sm text-app-muted mb-6 leading-relaxed">{successInfo.message}</p>
-          <div className="bg-emerald-50 rounded-xl border border-emerald-100 p-4 mb-6 text-left space-y-1.5">
-            <div className="flex items-center gap-2 text-xs text-emerald-700">
-              <CheckCheck className="w-3.5 h-3.5 shrink-0" />
-              <span>Account created with <strong>Viewer (Student)</strong> permissions</span>
+          <h2 className="auth-success-title">You're all set!</h2>
+          <p className="auth-success-msg">{success.message}</p>
+          <div className="auth-success-checklist">
+            <div className="auth-success-item">
+              <Check size={14} /> Account created with <strong>Viewer (Student)</strong> role
             </div>
-            <div className="flex items-center gap-2 text-xs text-emerald-700">
-              <CheckCheck className="w-3.5 h-3.5 shrink-0" />
-              <span>You can discover and register for activities</span>
+            <div className="auth-success-item">
+              <Check size={14} /> You can now register for activities and competitions
             </div>
-            <div className="flex items-center gap-2 text-xs text-emerald-700">
-              <CheckCheck className="w-3.5 h-3.5 shrink-0" />
-              <span>Track your achievements and portfolio</span>
+            <div className="auth-success-item">
+              <Check size={14} /> Track your achievements and portfolio
             </div>
           </div>
           <button
             type="button"
             id="register-success-signin"
             onClick={onNavigateToLogin}
-            className="w-full px-6 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg shadow-indigo-200 transition-all inline-flex items-center justify-center gap-2"
+            className="auth-btn-primary"
           >
-            <span>Proceed to Sign In</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>Continue to Sign In</span>
+            <ArrowRight size={17} />
           </button>
         </div>
       </div>
     );
   }
 
-  // ── Registration Form ─────────────────────────────────────────────────────
+  // ── Registration form ──────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 flex flex-col justify-center py-10 sm:px-6 lg:px-8 font-sans">
+    <div className={`auth-page-root ${mounted ? 'auth-mounted' : ''}`}>
 
-      {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-100/40 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-100/30 rounded-full blur-3xl" />
-      </div>
+      {/* ── LEFT PANEL ───────────────────────────────────────────────────── */}
+      <div className="auth-left-panel">
+        <div className="auth-left-content">
 
-      <div className="relative sm:mx-auto sm:w-full sm:max-w-xl">
-        {/* Brand Header */}
-        <div className="flex justify-center items-center gap-3 mb-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200">
-            <GraduationCap className="w-7 h-7" />
+          <div className="auth-logo">
+            <div className="auth-logo-icon">
+              <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
+                <circle cx="16" cy="16" r="14" fill="white" opacity="0.2"/>
+                <path d="M16 4 L20 13 L30 13 L22 19 L25 28 L16 22 L7 28 L10 19 L2 13 L12 13 Z" fill="white"/>
+              </svg>
+            </div>
+            <span className="auth-logo-text">ACTIVIA</span>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold font-display text-app-text tracking-tight">{schoolName}</h1>
-            <p className="text-xs text-app-muted">Student Registration &amp; Co-Curricular Enrollment</p>
+
+          <div className="auth-left-headline">
+            <h1>Your journey<br />starts here.</h1>
+            <p>
+              Join thousands of students exploring activities,
+              winning competitions, and building an achievement portfolio that lasts.
+            </p>
           </div>
+
+          <div className="auth-illustration-wrap">
+            <AuthIllustration variant="register" />
+          </div>
+
+          {/* Benefit list */}
+          <div className="auth-benefits">
+            {[
+              { icon: '🎯', text: 'Discover school activities & clubs' },
+              { icon: '🏆', text: 'Enter competitions & win recognition' },
+              { icon: '📋', text: 'Build a verified achievement portfolio' },
+              { icon: '📢', text: 'Stay updated with announcements' },
+            ].map(b => (
+              <div key={b.text} className="auth-benefit-item">
+                <span className="auth-benefit-icon">{b.icon}</span>
+                <span>{b.text}</span>
+              </div>
+            ))}
+          </div>
+
+          <p className="auth-tagline">Discover. Participate. Achieve.</p>
         </div>
-
-        <h2 className="mt-6 text-center text-xl sm:text-2xl font-bold font-display text-app-text">
-          Create Student Account
-        </h2>
-        <p className="mt-1 text-center text-xs sm:text-sm text-app-muted">
-          Register to participate in school activities, competitions, clubs, and track achievements
-        </p>
       </div>
 
-      <div className="relative mt-6 sm:mx-auto sm:w-full sm:max-w-xl px-4 sm:px-0">
-        <div className="bg-white/80 backdrop-blur-sm py-8 px-6 sm:px-10 shadow-xl shadow-slate-200/60 border border-white/60 rounded-2xl">
+      {/* ── RIGHT PANEL ──────────────────────────────────────────────────── */}
+      <div className="auth-right-panel auth-right-panel--scroll">
+        <div className="auth-form-container auth-form-container--register">
 
-          {errorMessage && (
-            <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-start gap-2.5" role="alert">
-              <ShieldAlert className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-              <div className="flex-1 font-medium">{errorMessage}</div>
+          {/* Header */}
+          <div className="auth-form-header">
+            <h2 className="auth-form-title">Create your account</h2>
+            <p className="auth-form-subtitle">
+              Student self-registration. Your account will receive <strong>Viewer</strong> (Student) access.
+            </p>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="auth-error-alert" role="alert">
+              <AlertCircle className="auth-error-icon" />
+              <span>{error}</span>
             </div>
           )}
 
-          {/* Security notice */}
-          <div className="mb-6 p-3.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs flex items-start gap-2.5">
-            <Shield className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-            <span className="leading-relaxed">
-              Self-registration automatically grants <strong>Viewer (Student)</strong> role permissions.
-              Staff and admin accounts are provisioned directly by the Principal.
-            </span>
-          </div>
+          <form onSubmit={handleSubmit} className="auth-form" noValidate>
 
-          <form onSubmit={handleSubmit} className="space-y-0" noValidate>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* ── Section 1: Personal ──────────────────────────────────── */}
+            <div className="auth-section-label">Personal Information</div>
 
-              {/* Full Name — spans full width */}
-              <div className="sm:col-span-2">
-                <label htmlFor="reg-full-name" className="block text-xs font-semibold text-[#172033] uppercase tracking-wider mb-1.5">
-                  Full Legal Name <span className="text-red-500 normal-case font-normal">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <input
-                    id="reg-full-name"
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Jordan Lee"
-                    className="block w-full pl-10 pr-3 py-2.5 text-sm bg-white text-[#172033] placeholder:text-slate-400 border border-[#CBD5E1] rounded-xl focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-indigo-100 transition-all"
-                  />
-                </div>
-              </div>
+            <Field id="reg-full-name" label="Full Name">
+              <input
+                id="reg-full-name"
+                type="text"
+                required
+                autoComplete="name"
+                value={fullName}
+                onChange={e => setFullName(e.target.value)}
+                placeholder="e.g. Jordan Lee"
+                className="auth-input"
+                disabled={loading}
+              />
+            </Field>
 
-              {/* School Email */}
-              <div>
-                <label htmlFor="reg-email" className="block text-xs font-semibold text-[#172033] uppercase tracking-wider mb-1.5">
-                  School Email <span className="text-red-500 normal-case font-normal">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Mail className="w-4 h-4" />
-                  </div>
-                  <input
-                    id="reg-email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="jordan.lee@school.edu"
-                    className="block w-full pl-10 pr-3 py-2.5 text-sm bg-white text-[#172033] placeholder:text-slate-400 border border-[#CBD5E1] rounded-xl focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-indigo-100 transition-all"
-                  />
-                </div>
-              </div>
+            <div className="auth-two-col">
+              <Field id="reg-email" label="School Email">
+                <input
+                  id="reg-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="jordan@school.edu"
+                  className="auth-input"
+                  disabled={loading}
+                />
+              </Field>
+              <Field id="reg-username" label="Username" hint="Letters, numbers, dots, underscores">
+                <input
+                  id="reg-username"
+                  type="text"
+                  required
+                  autoComplete="username"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  placeholder="e.g. jordan.lee"
+                  className="auth-input"
+                  disabled={loading}
+                />
+              </Field>
+            </div>
 
-              {/* Username */}
-              <div>
-                <label htmlFor="reg-username" className="block text-xs font-semibold text-[#172033] uppercase tracking-wider mb-1.5">
-                  Username <span className="text-red-500 normal-case font-normal">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <input
-                    id="reg-username"
-                    type="text"
-                    required
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="e.g. jordan.lee"
-                    className="block w-full pl-10 pr-3 py-2.5 text-sm bg-white text-[#172033] placeholder:text-slate-400 border border-[#CBD5E1] rounded-xl focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-indigo-100 transition-all"
-                  />
-                </div>
-                <p className="mt-1 text-[10px] text-slate-500">Letters, numbers, dots, underscores only. Min 3 characters.</p>
-              </div>
+            {/* ── Section 2: Academic ──────────────────────────────────── */}
+            <div className="auth-section-label">Academic Information</div>
 
-              {/* Class / Grade */}
-              <div>
-                <label htmlFor="reg-class" className="block text-xs font-semibold text-[#172033] uppercase tracking-wider mb-1.5">
-                  Class / Grade <span className="text-red-500 normal-case font-normal">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <BookOpen className="w-4 h-4" />
-                  </div>
-                  <select
-                    id="reg-class"
-                    value={className}
-                    onChange={(e) => setClassName(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2.5 text-sm bg-white text-[#172033] border border-[#CBD5E1] rounded-xl focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-indigo-100 transition-all appearance-none"
-                  >
-                    <option value="Grade 9">Grade 9</option>
-                    <option value="Grade 10">Grade 10</option>
-                    <option value="Grade 11">Grade 11</option>
-                    <option value="Grade 12">Grade 12</option>
-                  </select>
-                </div>
-              </div>
+            <div className="auth-two-col">
+              <Field id="reg-class" label="Class / Grade">
+                <select
+                  id="reg-class"
+                  value={className}
+                  onChange={e => setClassName(e.target.value)}
+                  className="auth-input auth-select"
+                  disabled={loading}
+                >
+                  <option value="Grade 9">Grade 9</option>
+                  <option value="Grade 10">Grade 10</option>
+                  <option value="Grade 11">Grade 11</option>
+                  <option value="Grade 12">Grade 12</option>
+                </select>
+              </Field>
+              <Field id="reg-stream" label="Academic Stream">
+                <select
+                  id="reg-stream"
+                  value={stream}
+                  onChange={e => setStream(e.target.value)}
+                  className="auth-input auth-select"
+                  disabled={loading}
+                >
+                  <option value="Science & Technology">Science &amp; Technology</option>
+                  <option value="Commerce & Economics">Commerce &amp; Economics</option>
+                  <option value="Humanities & Arts">Humanities &amp; Arts</option>
+                  <option value="General Studies">General Studies</option>
+                </select>
+              </Field>
+            </div>
 
-              {/* Academic Stream */}
-              <div>
-                <label htmlFor="reg-stream" className="block text-xs font-semibold text-[#172033] uppercase tracking-wider mb-1.5">
-                  Academic Stream
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Layers className="w-4 h-4" />
-                  </div>
-                  <select
-                    id="reg-stream"
-                    value={stream}
-                    onChange={(e) => setStream(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2.5 text-sm bg-white text-[#172033] border border-[#CBD5E1] rounded-xl focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-indigo-100 transition-all appearance-none"
-                  >
-                    <option value="Science & Technology">Science &amp; Technology (STEM)</option>
-                    <option value="Commerce & Economics">Commerce &amp; Economics</option>
-                    <option value="Humanities & Arts">Humanities &amp; Arts</option>
-                    <option value="General Studies">General Studies</option>
-                  </select>
-                </div>
-              </div>
+            {/* ── Section 3: Security ──────────────────────────────────── */}
+            <div className="auth-section-label">Account Security</div>
 
-              {/* Student ID — spans full width */}
-              <div className="sm:col-span-2">
-                <label htmlFor="reg-student-id" className="block text-xs font-semibold text-[#172033] uppercase tracking-wider mb-1.5">
-                  Student ID Number <span className="text-slate-400 normal-case font-normal text-[10px]">(Optional — auto-generated if blank)</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <IdCard className="w-4 h-4" />
-                  </div>
-                  <input
-                    id="reg-student-id"
-                    type="text"
-                    value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
-                    placeholder="e.g. STU-2026-9042"
-                    className="block w-full pl-10 pr-3 py-2.5 text-sm bg-white text-[#172033] placeholder:text-slate-400 border border-[#CBD5E1] rounded-xl focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-indigo-100 transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div>
-                <label htmlFor="reg-password" className="block text-xs font-semibold text-[#172033] uppercase tracking-wider mb-1.5">
-                  Password <span className="text-red-500 normal-case font-normal">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Lock className="w-4 h-4" />
-                  </div>
+            <div className="auth-two-col">
+              <div className="auth-field-group">
+                <label htmlFor="reg-password" className="auth-label">Password</label>
+                <div className="auth-input-wrap">
                   <input
                     id="reg-password"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPw ? 'text' : 'password'}
                     required
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={e => setPassword(e.target.value)}
                     placeholder="Min 8 characters"
-                    className="block w-full pl-10 pr-10 py-2.5 text-sm bg-white text-[#172033] placeholder:text-slate-400 border border-[#CBD5E1] rounded-xl focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="auth-input auth-input-padded-right"
+                    disabled={loading}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    onClick={() => setShowPw(v => !v)}
+                    className="auth-eye-btn"
+                    aria-label="Toggle password"
+                    tabIndex={-1}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
                   </button>
                 </div>
-                {/* Password strength bar */}
+                {/* Strength bar */}
                 {password && (
-                  <div className="mt-1.5 space-y-1">
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((i) => (
+                  <div className="auth-pw-strength">
+                    <div className="auth-pw-bar">
+                      {[1, 2, 3, 4, 5].map(i => (
                         <div
                           key={i}
-                          className={`h-1 flex-1 rounded-full transition-all ${
-                            i <= passwordStrength.score ? passwordStrength.color : 'bg-slate-200'
-                          }`}
+                          className="auth-pw-segment"
+                          style={{ backgroundColor: i <= pwStrength ? PW_COLORS[pwStrength] : '#E2E8F0' }}
                         />
                       ))}
                     </div>
-                    <p className={`text-[10px] font-medium ${
-                      passwordStrength.score <= 1 ? 'text-red-600' :
-                      passwordStrength.score <= 2 ? 'text-amber-600' :
-                      passwordStrength.score <= 3 ? 'text-yellow-600' :
-                      'text-emerald-600'
-                    }`}>{passwordStrength.label}</p>
+                    <span style={{ color: PW_COLORS[pwStrength], fontSize: '11px', fontWeight: 600 }}>
+                      {PW_LABELS[pwStrength]}
+                    </span>
                   </div>
                 )}
               </div>
 
-              {/* Confirm Password */}
-              <div>
-                <label htmlFor="reg-confirm-password" className="block text-xs font-semibold text-[#172033] uppercase tracking-wider mb-1.5">
-                  Confirm Password <span className="text-red-500 normal-case font-normal">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Lock className="w-4 h-4" />
-                  </div>
+              <div className="auth-field-group">
+                <label htmlFor="reg-confirm-pw" className="auth-label">Confirm Password</label>
+                <div className="auth-input-wrap">
                   <input
-                    id="reg-confirm-password"
-                    type={showConfirmPassword ? 'text' : 'password'}
+                    id="reg-confirm-pw"
+                    type={showCPw ? 'text' : 'password'}
                     required
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={e => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter password"
-                    className={`block w-full pl-10 pr-10 py-2.5 text-sm bg-white text-[#172033] placeholder:text-slate-400 rounded-xl focus:outline-none focus:ring-2 transition-all border ${
-                      passwordsMismatch
-                        ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-                        : passwordsMatch
-                        ? 'border-emerald-400 focus:border-emerald-500 focus:ring-emerald-100'
-                        : 'border-[#CBD5E1] focus:border-[#4F46E5] focus:ring-indigo-100'
-                    }`}
+                    className={`auth-input auth-input-padded-right ${pwMismatch ? 'auth-input--error' : pwMatch ? 'auth-input--success' : ''}`}
+                    disabled={loading}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                    aria-label="Toggle confirm password visibility"
+                    onClick={() => setShowCPw(v => !v)}
+                    className="auth-eye-btn"
+                    aria-label="Toggle confirm password"
+                    tabIndex={-1}
                   >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showCPw ? <EyeOff size={17} /> : <Eye size={17} />}
                   </button>
                 </div>
-                {/* Match indicator */}
                 {confirmPassword && (
-                  <div className={`mt-1.5 flex items-center gap-1 text-[10px] font-medium ${
-                    passwordsMatch ? 'text-emerald-600' : 'text-red-600'
-                  }`}>
-                    {passwordsMatch
-                      ? <><CheckCheck className="w-3 h-3" /> Passwords match</>
-                      : <><XCircle className="w-3 h-3" /> Passwords do not match</>
-                    }
+                  <div className={`auth-pw-match ${pwMatch ? 'auth-pw-match--ok' : 'auth-pw-match--err'}`}>
+                    {pwMatch ? <Check size={12} /> : <X size={12} />}
+                    <span>{pwMatch ? 'Passwords match' : 'Passwords do not match'}</span>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Submit Button */}
-            <div className="pt-5">
-              <button
-                type="submit"
-                id="register-submit-btn"
-                disabled={loading}
-                className="w-full py-3 px-4 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 active:from-indigo-800 active:to-violet-800 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-indigo-200 hover:shadow-indigo-300 flex items-center justify-center gap-2 transition-all duration-200"
-              >
-                {loading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Creating Account...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Complete Registration</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
+            {/* Password requirements checklist */}
+            <div className="auth-pw-checks">
+              {pwChecks.map(c => (
+                <div key={c.label} className={`auth-pw-check ${c.met ? 'auth-pw-check--met' : ''}`}>
+                  <div className="auth-pw-check-dot" />
+                  <span>{c.label}</span>
+                </div>
+              ))}
             </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              id="register-submit-btn"
+              disabled={loading}
+              className="auth-btn-primary"
+            >
+              {loading ? (
+                <><Loader2 size={18} className="auth-spinner" /><span>Creating account…</span></>
+              ) : (
+                <><span>Create Account</span><ArrowRight size={17} /></>
+              )}
+            </button>
           </form>
 
-          {/* Back to Login */}
-          <div className="mt-5 pt-4 border-t border-app-border text-center flex items-center justify-center gap-2">
+          {/* Back to login */}
+          <p className="auth-switch-text">
+            Already have an account?{' '}
             <button
               type="button"
               id="register-back-to-login"
               onClick={onNavigateToLogin}
-              className="inline-flex items-center gap-1.5 text-xs text-app-muted hover:text-app-brand font-medium transition-colors"
+              className="auth-link"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Sign In</span>
+              Sign in
             </button>
-          </div>
-
-          {/* Firebase Mode Badge */}
-          {authMode === 'firebase' && (
-            <div className="mt-4 p-3 rounded-xl bg-indigo-50/60 border border-indigo-100 text-[11px] text-indigo-700 text-center">
-              🔐 Secured by Firebase Authentication — Project: <strong>activia-f36ee</strong>
-            </div>
-          )}
+          </p>
         </div>
       </div>
     </div>

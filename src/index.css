@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Auth pages must render full-bleed with no interference from app shell */
+.auth-page-root,
+.auth-success-page {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+
 @layer base {
   :root {
     --color-bg-primary: #FFFFFF;

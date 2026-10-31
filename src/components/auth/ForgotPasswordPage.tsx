@@ -1,16 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import {
-  GraduationCap,
-  Mail,
-  ArrowLeft,
-  ArrowRight,
-  ShieldCheck,
-  AlertCircle,
-  Copy,
-  Check,
-  Inbox
-} from 'lucide-react';
+import { ArrowLeft, AlertCircle, Loader2, Inbox, Send } from 'lucide-react';
 import { firebaseSendPasswordReset } from '../../lib/firebaseAuth';
+import './auth.css';
 
 interface ForgotPasswordPageProps {
   onNavigateToLogin: () => void;
@@ -20,101 +11,73 @@ interface ForgotPasswordPageProps {
 
 export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
   onNavigateToLogin,
-  onNavigateToReset,
-  schoolName = 'ACTIVIA Hub'
 }) => {
-  const [identifier, setIdentifier] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
-  const [authMode, setAuthMode] = useState<'firebase' | 'express'>('firebase');
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+  const [authMode, setAuthMode] = useState<'firebase' | 'express'>('express');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const mode = (import.meta.env.VITE_AUTH_MODE as 'firebase' | 'express') || 'firebase';
-    setAuthMode(mode);
+    setMounted(true);
+    setAuthMode((import.meta.env.VITE_AUTH_MODE as 'firebase' | 'express') || 'express');
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage(null);
+    setError(null);
 
-    const cleanIdentifier = identifier.trim();
-    if (!cleanIdentifier) {
-      setErrorMessage('Please enter your school email or username.');
-      return;
+    const cleanEmail = email.trim();
+    if (!cleanEmail) { setError('Please enter your school email address.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError('Please enter a valid email address.'); return;
     }
 
     setLoading(true);
-
     try {
       if (authMode === 'firebase') {
-        // For Firebase: identifier must be an email
-        let email = cleanIdentifier;
-        if (!email.includes('@')) {
-          setErrorMessage('Please enter your full school email address (e.g. student@school.edu) to reset via Firebase.');
-          setLoading(false);
-          return;
-        }
-        await firebaseSendPasswordReset(email);
-        setEmailSent(true);
+        await firebaseSendPasswordReset(cleanEmail);
+        setSent(true);
       } else {
-        const response = await fetch('/api/auth/forgot-password', {
+        const res = await fetch('/api/auth/forgot-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ emailOrUsername: cleanIdentifier }),
+          body: JSON.stringify({ emailOrUsername: cleanEmail }),
         });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          setErrorMessage(data.error || 'Failed to initiate password recovery.');
-          setLoading(false);
-          return;
-        }
-
-        if (data.recoveryCode) {
-          setRecoveryCode(data.recoveryCode);
-        } else {
-          setEmailSent(true);
-        }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to send reset instructions.');
+        setSent(true);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to send password reset. Please try again.');
+      setError(err.message || 'Failed to send reset email. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCopyCode = () => {
-    if (recoveryCode) {
-      navigator.clipboard.writeText(recoveryCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  // Firebase email-sent confirmation screen
-  if (emailSent) {
+  if (sent) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 flex flex-col justify-center items-center py-12 px-4 font-sans">
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-white/60 shadow-xl shadow-slate-200/60 p-10 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-violet-500 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-indigo-200 mb-4">
-            <Inbox className="w-9 h-9" />
+      <div className="auth-success-page">
+        <div className="auth-success-card">
+          <div className="auth-success-icon-wrap">
+            <Inbox size={32} />
           </div>
-          <h3 className="text-xl font-bold text-app-text font-display mb-2">Check Your Email</h3>
-          <p className="text-sm text-app-muted mb-6 leading-relaxed">
-            We've sent a password reset link to <strong className="text-app-text">{identifier}</strong>.
+          <h2 className="auth-success-title">Check your inbox</h2>
+          <p className="auth-success-msg">
+            We've sent password reset instructions to{' '}
+            <strong style={{ color: '#172033' }}>{email}</strong>.
             Click the link in the email to set a new password.
           </p>
-          <p className="text-xs text-app-subtle mb-5">Didn't receive it? Check your spam folder or contact school IT.</p>
+          <p style={{ fontSize: 13, color: '#64748B', marginBottom: 24 }}>
+            Didn't receive it? Check your spam folder or contact school IT.
+          </p>
           <button
             type="button"
             onClick={onNavigateToLogin}
-            className="w-full px-6 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg shadow-indigo-200 transition-all inline-flex items-center justify-center gap-2"
+            className="auth-btn-primary"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft size={16} />
             <span>Back to Sign In</span>
           </button>
         </div>
@@ -123,130 +86,71 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-app-brand text-white flex items-center justify-center shadow-md">
-            <GraduationCap className="w-7 h-7" />
+    <div className={`auth-success-page`} style={{ background: '#F8FAFC' }}>
+      <div className="auth-success-card" style={{ textAlign: 'left' }}>
+
+        {/* Logo */}
+        <div className="auth-logo" style={{ marginBottom: 28 }}>
+          <div className="auth-logo-icon" style={{ background: '#4F46E5', border: 'none' }}>
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" width="18" height="18">
+              <path d="M16 4 L20 13 L30 13 L22 19 L25 28 L16 22 L7 28 L10 19 L2 13 L12 13 Z" fill="white"/>
+            </svg>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold font-display text-app-text tracking-tight">
-              {schoolName}
-            </h1>
-            <p className="text-xs text-app-muted">Account Recovery Service</p>
-          </div>
+          <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 20, color: '#172033', letterSpacing: '0.03em' }}>ACTIVIA</span>
         </div>
 
-        <h2 className="mt-6 text-center text-xl sm:text-2xl font-bold font-display text-app-text">
-          Reset Your Password
-        </h2>
-        <p className="mt-1 text-center text-xs sm:text-sm text-app-muted">
-          Enter your registered school email address or username to receive a verification code
+        <h2 className="auth-form-title" style={{ marginBottom: 8 }}>Reset your password</h2>
+        <p className="auth-form-subtitle" style={{ marginBottom: 24 }}>
+          Enter your school email and we'll send instructions to reset your password.
         </p>
-      </div>
 
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
-        <div className="bg-white py-8 px-6 sm:px-10 shadow-xs border border-app-border rounded-2xl">
-          {recoveryCode ? (
-            <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
-                <ShieldCheck className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-                <h3 className="text-sm font-bold text-emerald-900 font-display">
-                  Verification Code Generated
-                </h3>
-                <p className="text-xs text-emerald-700 mt-1">
-                  Use this 6-digit code to securely establish your new account password:
-                </p>
-                <div className="mt-3 flex items-center justify-center gap-2">
-                  <span className="font-mono text-2xl font-bold tracking-widest text-emerald-900 bg-white px-4 py-1.5 rounded-lg border border-emerald-300">
-                    {recoveryCode}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleCopyCode}
-                    className="p-2 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition-colors"
-                    title="Copy code"
-                  >
-                    {copied ? <Check className="w-4 h-4 text-emerald-700" /> : <Copy className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
+        {error && (
+          <div className="auth-error-alert" role="alert">
+            <AlertCircle className="auth-error-icon" />
+            <span>{error}</span>
+          </div>
+        )}
 
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => onNavigateToReset(identifier, recoveryCode)}
-                  className="w-full py-2.5 px-4 rounded-xl font-semibold text-sm text-white bg-app-brand hover:bg-indigo-700 shadow-xs flex items-center justify-center gap-2 transition-all"
-                >
-                  <span>Proceed to Set New Password</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {errorMessage && (
-                <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-start gap-2.5">
-                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                  <div className="flex-1 font-medium">{errorMessage}</div>
-                </div>
-              )}
+        <form onSubmit={handleSubmit} className="auth-form" noValidate>
+          <div className="auth-field-group">
+            <label htmlFor="forgot-email" className="auth-label">School Email Address</label>
+            <input
+              id="forgot-email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="your.name@school.edu"
+              className="auth-input"
+              disabled={loading}
+            />
+          </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label htmlFor="identifier" className="block text-xs font-semibold text-app-text uppercase tracking-wider mb-1.5">
-                    School Email or Username
-                  </label>
-                  <div className="relative rounded-xl border border-app-border focus-within:border-app-brand focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-app-muted">
-                      <Mail className="w-4 h-4" />
-                    </div>
-                    <input
-                      id="identifier"
-                      type="text"
-                      required
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                      placeholder="e.g. alex.rivera@school.edu or student"
-                      className="block w-full pl-10 pr-3 py-2.5 text-sm bg-transparent text-app-text placeholder:text-app-subtle focus:outline-none rounded-xl"
-                    />
-                  </div>
-                </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="auth-btn-primary"
+          >
+            {loading ? (
+              <><Loader2 size={18} className="auth-spinner" /><span>Sending…</span></>
+            ) : (
+              <><Send size={16} /><span>Send Reset Instructions</span></>
+            )}
+          </button>
+        </form>
 
-                <div>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-2.5 px-4 rounded-xl font-semibold text-sm text-white bg-app-brand hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 shadow-xs flex items-center justify-center gap-2 transition-all"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span>Sending Request...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Generate Recovery Code</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-
-              <div className="mt-6 pt-5 border-t border-app-border text-center">
-                <button
-                  type="button"
-                  onClick={onNavigateToLogin}
-                  className="inline-flex items-center gap-1.5 text-xs text-app-muted hover:text-app-brand font-medium transition-colors"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Return to Sign In</span>
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+        <p className="auth-switch-text" style={{ marginTop: 20 }}>
+          <button
+            type="button"
+            onClick={onNavigateToLogin}
+            className="auth-link"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+          >
+            <ArrowLeft size={13} />
+            Back to Sign In
+          </button>
+        </p>
       </div>
     </div>
   );
