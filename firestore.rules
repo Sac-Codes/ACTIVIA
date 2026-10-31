@@ -1,0 +1,214 @@
+rules_version = '2';
+// ACTIVIA | Firestore Security Rules
+// Project: activia-f36ee
+// 
+// Role Hierarchy:
+//   admin       → Full read/write access to all collections
+//   editor      → Can create/update activities, announcements, clubs
+//   viewer      → Read-only for most collections, can write own profile/notifications
+//
+// Deploy with: firebase deploy --only firestore:rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper Functions ────────────────────────────────────────────────────
+
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Get the current user's Firestore profile
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Check user role (with safe fallback)
+    function hasRole(role) {
+      return isAuthenticated() && getUserData().role == role;
+    }
+
+    function isAdmin() {
+      return hasRole('admin') || hasRole('coordinator');
+    }
+
+    function isEditor() {
+      return hasRole('editor') || hasRole('teacher') || isAdmin();
+    }
+
+    function isViewer() {
+      return isAuthenticated(); // All authenticated users are at least viewers
+    }
+
+    // Check if the user owns the document (by uid or studentUid field)
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    // Check that certain fields are not being escalated by the user
+    function noRoleEscalation() {
+      // Prevent users from setting their own role to admin/editor
+      return !('role' in request.resource.data) ||
+             request.resource.data.role == 'viewer' ||
+             isAdmin();
+    }
+
+    // ── Users Collection ─────────────────────────────────────────────────────
+    match /users/{userId} {
+      // Any authenticated user can read their own profile
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+
+      // Admins can read all user profiles
+      allow list: if isAdmin();
+
+      // Users can create their own profile during registration (viewer only)
+      allow create: if isAuthenticated()
+                    && isOwner(userId)
+                    && noRoleEscalation()
+                    && request.resource.data.role == 'viewer';
+
+      // Users can update their own non-sensitive fields; Admins can update anything
+      allow update: if isAuthenticated() && (
+        (isOwner(userId) && noRoleEscalation()) || isAdmin()
+      );
+
+      // Only admins can delete users
+      allow delete: if isAdmin();
+    }
+
+    // ── Activities Collection ─────────────────────────────────────────────────
+    match /activities/{activityId} {
+      // All authenticated users can read published activities
+      allow read: if isViewer();
+
+      // Editors and admins can create/update/delete activities
+      allow create, update: if isEditor();
+      allow delete: if isAdmin();
+    }
+
+    // ── Announcements Collection ──────────────────────────────────────────────
+    match /announcements/{announcementId} {
+      allow read: if isViewer();
+      allow create, update: if isEditor();
+      allow delete: if isAdmin();
+    }
+
+    // ── Clubs Collection ──────────────────────────────────────────────────────
+    match /clubs/{clubId} {
+      allow read: if isViewer();
+      allow create, update: if isEditor();
+      allow delete: if isAdmin();
+    }
+
+    // ── Houses Collection ─────────────────────────────────────────────────────
+    match /houses/{houseId} {
+      allow read: if isViewer();
+      allow write: if isAdmin();
+    }
+
+    // ── Applications Collection ───────────────────────────────────────────────
+    match /applications/{applicationId} {
+      // Students can read their own applications; admins/editors can read all
+      allow read: if isAuthenticated() && (
+        resource.data.applicantUid == request.auth.uid || isEditor()
+      );
+
+      // Students can submit their own applications
+      allow create: if isAuthenticated()
+                    && request.resource.data.applicantUid == request.auth.uid;
+
+      // Editors/admins can update (approve/reject) applications
+      allow update: if isEditor();
+
+      // Only admins can delete applications
+      allow delete: if isAdmin();
+    }
+
+    // ── Notifications Collection ──────────────────────────────────────────────
+    match /notifications/{notificationId} {
+      // Users can only read/update their own notifications
+      allow read, update: if isAuthenticated()
+                          && resource.data.recipientUid == request.auth.uid;
+
+      // Editors/admins can create notifications
+      allow create: if isEditor();
+
+      // Admins can delete notifications
+      allow delete: if isAdmin();
+    }
+
+    // ── Achievements Collection ───────────────────────────────────────────────
+    match /achievements/{achievementId} {
+      // Students can read their own achievements; public ones are visible to all
+      allow read: if isViewer() && (
+        resource.data.studentUid == request.auth.uid ||
+        resource.data.isPublic == true ||
+        isEditor()
+      );
+
+      // Editors/admins can create verified achievements
+      allow create: if isEditor();
+
+      // Only admins can update/delete achievements
+      allow update, delete: if isAdmin();
+    }
+
+    // ── Audit Logs Collection ─────────────────────────────────────────────────
+    match /audit_logs/{logId} {
+      // Only admins can read audit logs
+      allow read: if isAdmin();
+
+      // Editors can write audit log entries
+      allow create: if isEditor();
+
+      // Audit logs are immutable — no updates or deletes
+      allow update, delete: if false;
+    }
+
+    // ── Settings Collection ───────────────────────────────────────────────────
+    match /settings/{settingId} {
+      allow read: if isViewer();
+      allow write: if isAdmin();
+    }
+
+    // ── Calendar Events Collection ─────────────────────────────────────────────
+    match /calendar_events/{eventId} {
+      allow read: if isViewer();
+      allow write: if isEditor();
+    }
+
+    // ── Feedback Tickets Collection ────────────────────────────────────────────
+    match /feedback_tickets/{ticketId} {
+      allow read: if isAuthenticated() && (
+        resource.data.submittedByUid == request.auth.uid || isEditor()
+      );
+      allow create: if isAuthenticated()
+                    && request.resource.data.submittedByUid == request.auth.uid;
+      allow update: if isEditor();
+      allow delete: if isAdmin();
+    }
+
+    // ── Teams Collection ──────────────────────────────────────────────────────
+    match /teams/{teamId} {
+      allow read: if isViewer();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        resource.data.captainUid == request.auth.uid || isEditor()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ── Competitions Collection ────────────────────────────────────────────────
+    match /competitions/{competitionId} {
+      allow read: if isViewer();
+      allow create, update: if isEditor();
+      allow delete: if isAdmin();
+    }
+
+    // ── Default: Deny all other access ────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

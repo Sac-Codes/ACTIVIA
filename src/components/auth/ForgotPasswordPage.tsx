@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   GraduationCap,
   Mail,
@@ -7,8 +7,10 @@ import {
   ShieldCheck,
   AlertCircle,
   Copy,
-  Check
+  Check,
+  Inbox
 } from 'lucide-react';
+import { firebaseSendPasswordReset } from '../../lib/firebaseAuth';
 
 interface ForgotPasswordPageProps {
   onNavigateToLogin: () => void;
@@ -26,6 +28,13 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [authMode, setAuthMode] = useState<'firebase' | 'express'>('firebase');
+
+  useEffect(() => {
+    const mode = (import.meta.env.VITE_AUTH_MODE as 'firebase' | 'express') || 'firebase';
+    setAuthMode(mode);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,25 +49,39 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ emailOrUsername: cleanIdentifier }),
-      });
+      if (authMode === 'firebase') {
+        // For Firebase: identifier must be an email
+        let email = cleanIdentifier;
+        if (!email.includes('@')) {
+          setErrorMessage('Please enter your full school email address (e.g. student@school.edu) to reset via Firebase.');
+          setLoading(false);
+          return;
+        }
+        await firebaseSendPasswordReset(email);
+        setEmailSent(true);
+      } else {
+        const response = await fetch('/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ emailOrUsername: cleanIdentifier }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
-        setErrorMessage(data.error || 'Failed to initiate password recovery.');
-        setLoading(false);
-        return;
-      }
+        if (!response.ok) {
+          setErrorMessage(data.error || 'Failed to initiate password recovery.');
+          setLoading(false);
+          return;
+        }
 
-      if (data.recoveryCode) {
-        setRecoveryCode(data.recoveryCode);
+        if (data.recoveryCode) {
+          setRecoveryCode(data.recoveryCode);
+        } else {
+          setEmailSent(true);
+        }
       }
     } catch (err: any) {
-      setErrorMessage('Failed to connect to authentication server. Please try again later.');
+      setErrorMessage(err.message || 'Failed to send password reset. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -72,8 +95,35 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
     }
   };
 
+  // Firebase email-sent confirmation screen
+  if (emailSent) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 flex flex-col justify-center items-center py-12 px-4 font-sans">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-white/60 shadow-xl shadow-slate-200/60 p-10 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-violet-500 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-indigo-200 mb-4">
+            <Inbox className="w-9 h-9" />
+          </div>
+          <h3 className="text-xl font-bold text-app-text font-display mb-2">Check Your Email</h3>
+          <p className="text-sm text-app-muted mb-6 leading-relaxed">
+            We've sent a password reset link to <strong className="text-app-text">{identifier}</strong>.
+            Click the link in the email to set a new password.
+          </p>
+          <p className="text-xs text-app-subtle mb-5">Didn't receive it? Check your spam folder or contact school IT.</p>
+          <button
+            type="button"
+            onClick={onNavigateToLogin}
+            className="w-full px-6 py-3 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg shadow-indigo-200 transition-all inline-flex items-center justify-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Sign In</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#F7F9FC] flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-app-brand text-white flex items-center justify-center shadow-md">

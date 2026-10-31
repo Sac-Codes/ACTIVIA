@@ -26,6 +26,9 @@ import { ResetPasswordPage } from './components/auth/ResetPasswordPage';
 import { AccessDeniedPage } from './components/auth/AccessDeniedPage';
 import { PendingApprovalPage } from './components/auth/PendingApprovalPage';
 
+// Firebase Auth Observer
+import { onAuthStateChange, firebaseLogout } from './lib/firebaseAuth';
+
 import { activiaStore } from './api';
 import {
   UserPersona,
@@ -164,8 +167,13 @@ export const App: React.FC = () => {
 
   // Auth Handler: Logout
   const handleLogout = async () => {
+    const authMode = (import.meta.env.VITE_AUTH_MODE as string) || 'firebase';
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      if (authMode === 'firebase') {
+        await firebaseLogout();
+      } else {
+        await fetch('/api/auth/logout', { method: 'POST' });
+      }
     } catch {}
     try {
       localStorage.removeItem('activia_current_user');
